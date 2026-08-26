@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('recommendation_logs', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->json('context_snapshot')->nullable();
+            $table->json('candidate_drink_ids')->nullable();
+            $table->json('final_ranked_ids')->nullable();
+            $table->text('llm_explanation')->nullable();
+            $table->timestamp('created_at')->nullable()->index();
         });
     }
 
