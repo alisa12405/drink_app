@@ -1,0 +1,125 @@
+name: drink-app
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: drink-app-php
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      - APP_NAME=${APP_NAME:-DrinkApp}
+      - APP_URL=http://localhost:${APP_HTTP_PORT:-8080}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_DATABASE=${DB_DATABASE:-drink_app}
+      - DB_USERNAME=${DB_USERNAME:-drink_app}
+      - DB_PASSWORD=${DB_PASSWORD:-change_me_secret}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - WEATHER_API_KEY=${WEATHER_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - drink-app-network
+
+  webserver:
+    image: nginx:1.27-alpine
+    container_name: drink-app-webserver
+    restart: unless-stopped
+    ports:
+      - "${APP_HTTP_PORT:-8080}:80"
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - app
+    networks:
+      - drink-app-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    container_name: drink-app-frontend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    environment:
+      - VITE_API_BASE_URL=http://localhost:${APP_HTTP_PORT:-8080}/api
+    ports:
+      - "${FRONTEND_PORT:-5174}:5173"
+    networks:
+      - drink-app-network
+
+  db:
+    image: mysql:8.0
+    container_name: drink-app-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=${DB_DATABASE:-drink_app}
+      - MYSQL_USER=${DB_USERNAME:-drink_app}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-change_me_secret}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-change_me_root_secret}
+    ports:
+      - "${DB_EXTERNAL_PORT:-3306}:3306"
+    volumes:
+      - drink-app-db-data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-change_me_root_secret}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - drink-app-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: drink-app-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    volumes:
+      - drink-app-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - drink-app-network
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: drink-app-phpmyadmin
+    restart: unless-stopped
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+    ports:
+      - "${PHPMYADMIN_PORT:-8081}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - drink-app-network
+
+volumes:
+  drink-app-db-data:
+  drink-app-redis-data:
+
+networks:
+  drink-app-network:
+    driver: bridge
