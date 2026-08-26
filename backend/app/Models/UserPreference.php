@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\IceLevel;
 use App\Enums\SugarLevel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'profile_text',
     'profile_embedding',
 ])]
+#[Hidden(['profile_embedding'])]
 class UserPreference extends Model
 {
     /**

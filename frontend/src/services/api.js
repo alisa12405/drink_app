@@ -51,4 +51,21 @@ export const adminDrinksApi = {
   remove: (id) => apiClient.delete(`/admin/drinks/${id}`),
 }
 
+export const preferencesApi = {
+  show: () => apiClient.get('/preferences'),
+  update: (payload) => apiClient.put('/preferences', payload),
+}
+
+export const ordersApi = {
+  create: (payload) => apiClient.post('/orders', payload),
+  history: (params) => apiClient.get('/orders/history', { params }),
+  show: (id) => apiClient.get(`/orders/${id}`),
+  cancel: (id) => apiClient.patch(`/orders/${id}/cancel`),
+}
+
+export const ratingsApi = {
+  create: (payload) => apiClient.post('/ratings', payload),
+  list: () => apiClient.get('/ratings'),
+}
+
 export default apiClient

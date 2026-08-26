@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DrinkController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PreferenceController;
+use App\Http\Controllers\Api\RatingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -16,6 +19,19 @@ Route::prefix('auth')->group(function () {
 
 Route::get('drinks', [DrinkController::class, 'index']);
 Route::get('drinks/{drink}', [DrinkController::class, 'show']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('preferences', [PreferenceController::class, 'show']);
+    Route::put('preferences', [PreferenceController::class, 'update']);
+
+    Route::post('orders', [OrderController::class, 'store']);
+    Route::get('orders/history', [OrderController::class, 'history']);
+    Route::get('orders/{order}', [OrderController::class, 'show']);
+    Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel']);
+
+    Route::post('ratings', [RatingController::class, 'store']);
+    Route::get('ratings', [RatingController::class, 'index']);
+});
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('drinks', [DrinkController::class, 'adminIndex']);
