@@ -3,7 +3,11 @@
 namespace App\Models;
 
 use App\Enums\TemperatureType;
+use Database\Factories\DrinkFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,9 +25,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'is_available',
     'description_embedding',
 ])]
+#[Hidden(['description_embedding'])]
 class Drink extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<DrinkFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -38,6 +44,15 @@ class Drink extends Model
             'is_available' => 'boolean',
             'description_embedding' => 'array',
         ];
+    }
+
+    /**
+     * @param  Builder<Drink>  $query
+     * @return Builder<Drink>
+     */
+    public function scopeAvailable(Builder $query): Builder
+    {
+        return $query->where('is_available', true);
     }
 
     public function orderItems(): HasMany
