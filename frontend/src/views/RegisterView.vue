@@ -10,21 +10,35 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 const router = useRouter()
 const auth = useAuthStore()
 
+const name = ref('')
 const email = ref('')
 const password = ref('')
+const passwordConfirmation = ref('')
+const fieldErrors = ref({})
 const errorMessage = ref('')
 const isSubmitting = ref(false)
 
 async function onSubmit() {
   errorMessage.value = ''
+  fieldErrors.value = {}
   isSubmitting.value = true
 
   try {
-    await auth.login(email.value.trim(), password.value)
+    await auth.register({
+      name: name.value.trim(),
+      email: email.value.trim(),
+      password: password.value,
+      password_confirmation: passwordConfirmation.value,
+    })
     await router.replace({ name: 'home' })
   } catch (error) {
-    const apiMessage = error.response?.data?.errors?.email?.[0] || error.response?.data?.message
-    errorMessage.value = apiMessage || 'Đăng nhập thất bại. Kiểm tra email, mật khẩu và API backend.'
+    const errors = error.response?.data?.errors
+    if (errors) {
+      fieldErrors.value = Object.fromEntries(
+        Object.entries(errors).map(([key, messages]) => [key, messages[0]]),
+      )
+    }
+    errorMessage.value = error.response?.data?.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.'
   } finally {
     isSubmitting.value = false
   }
@@ -39,11 +53,21 @@ async function onSubmit() {
       <BaseCard class="w-full" padding="lg">
         <form class="flex flex-col gap-5" @submit.prevent="onSubmit">
           <div>
-            <h1 class="font-heading font-bold text-2xl text-foreground">Đăng nhập</h1>
+            <h1 class="font-heading font-bold text-2xl text-foreground">Tạo tài khoản</h1>
             <p class="text-sm text-muted-foreground mt-1">
-              Chào mừng quay lại! Đăng nhập để đặt món yêu thích của bạn.
+              Đăng ký để khai báo sở thích và nhận gợi ý đồ uống phù hợp với bạn.
             </p>
           </div>
+
+          <FormField
+            v-model="name"
+            label="Họ tên"
+            type="text"
+            autocomplete="name"
+            placeholder="Nguyễn Văn A"
+            :error="fieldErrors.name"
+            required
+          />
 
           <FormField
             v-model="email"
@@ -51,6 +75,7 @@ async function onSubmit() {
             type="email"
             autocomplete="username"
             placeholder="ban@example.com"
+            :error="fieldErrors.email"
             required
           />
 
@@ -58,8 +83,18 @@ async function onSubmit() {
             v-model="password"
             label="Mật khẩu"
             type="password"
-            autocomplete="current-password"
-            placeholder="••••••••"
+            autocomplete="new-password"
+            placeholder="Tối thiểu 8 ký tự"
+            :error="fieldErrors.password"
+            required
+          />
+
+          <FormField
+            v-model="passwordConfirmation"
+            label="Xác nhận mật khẩu"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Nhập lại mật khẩu"
             required
           />
 
@@ -68,13 +103,13 @@ async function onSubmit() {
           </p>
 
           <BaseButton type="submit" :disabled="isSubmitting">
-            {{ isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập' }}
+            {{ isSubmitting ? 'Đang tạo tài khoản…' : 'Đăng ký' }}
           </BaseButton>
 
           <p class="text-sm text-muted-foreground text-center">
-            Chưa có tài khoản?
-            <RouterLink :to="{ name: 'register' }" class="text-primary font-semibold hover:underline">
-              Đăng ký ngay
+            Đã có tài khoản?
+            <RouterLink :to="{ name: 'login' }" class="text-primary font-semibold hover:underline">
+              Đăng nhập
             </RouterLink>
           </p>
         </form>

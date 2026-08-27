@@ -1,12 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import LoginView from '../views/LoginView.vue'
+import RegisterView from '../views/RegisterView.vue'
 import HomeView from '../views/HomeView.vue'
 import PreferenceView from '../views/PreferenceView.vue'
 import OrderHistoryView from '../views/OrderHistoryView.vue'
 import AdminMenuView from '../views/AdminMenuView.vue'
 import AdminOrdersView from '../views/AdminOrdersView.vue'
 import AdminReportsView from '../views/AdminReportsView.vue'
+import CheckoutView from '../views/CheckoutView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,6 +17,12 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+      meta: { guest: true },
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterView,
       meta: { guest: true },
     },
     {
@@ -33,6 +41,12 @@ const router = createRouter({
       path: '/orders',
       name: 'order-history',
       component: OrderHistoryView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/checkout',
+      name: 'checkout',
+      component: CheckoutView,
       meta: { requiresAuth: true },
     },
     {

@@ -1,10 +1,19 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+import { Pencil, Search, Trash2 } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 import { adminDrinksApi } from '@/services/api'
-import { TEMPERATURE_OPTIONS } from '@/constants/drinkOptions'
+import { TEMPERATURE_OPTIONS, getCategoryEmoji } from '@/constants/drinkOptions'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import FormField from '@/components/ui/FormField.vue'
+import RadioCard from '@/components/ui/RadioCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
 
 const drinks = ref([])
 const isLoading = ref(true)
@@ -149,440 +158,212 @@ async function deleteDrink(drink) {
   }
 }
 
-function backToHome() {
-  router.push({ name: 'home' })
+function temperatureLabel(value) {
+  return TEMPERATURE_OPTIONS.find((opt) => opt.value === value)?.label ?? value
+}
+
+async function onLogout() {
+  await auth.logout()
+  await router.replace({ name: 'login' })
 }
 </script>
 
 <template>
-  <div class="admin-page">
-    <div class="wrapper">
-      <button type="button" class="back" @click="backToHome">← Về trang chủ</button>
-      <p class="eyebrow">UC-08 (Admin)</p>
-      <h1>Quản lý menu đồ uống</h1>
+  <div class="min-h-screen bg-background">
+    <AppNavbar :cart-count="0" :show-cart="false">
+      <RouterLink :to="{ name: 'home' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Menu
+      </RouterLink>
+      <RouterLink :to="{ name: 'preferences' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Sở thích của tôi
+      </RouterLink>
+      <RouterLink :to="{ name: 'order-history' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Lịch sử đơn hàng
+      </RouterLink>
+      <RouterLink :to="{ name: 'admin-menu' }" class="text-sm font-semibold text-primary">
+        Quản lý menu
+      </RouterLink>
+      <RouterLink :to="{ name: 'admin-orders' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Quản lý đơn hàng
+      </RouterLink>
+      <RouterLink :to="{ name: 'admin-reports' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Báo cáo
+      </RouterLink>
 
-      <div class="layout">
-        <section class="list-panel">
-          <div class="list-header">
-            <h2>Danh sách món ({{ drinks.length }})</h2>
-            <div class="filter">
-              <input
-                v-model="categoryFilter"
-                type="text"
-                placeholder="Lọc theo danh mục…"
-                @keyup.enter="loadDrinks"
-              />
-              <button type="button" @click="loadDrinks">Lọc</button>
+      <template #actions>
+        <div class="hidden md:block text-right leading-tight">
+          <p class="text-xs font-semibold text-foreground">{{ auth.user?.name }}</p>
+          <p class="text-[10px] text-muted-foreground uppercase tracking-wide">{{ auth.user?.role }}</p>
+        </div>
+        <button
+          type="button"
+          class="text-xs font-semibold text-muted-foreground hover:text-destructive border border-border rounded-lg px-3 py-1.5 transition-colors"
+          @click="onLogout"
+        >
+          Đăng xuất
+        </button>
+      </template>
+    </AppNavbar>
+
+    <div class="max-w-[1200px] mx-auto px-4 md:px-6 py-8 flex flex-col gap-6">
+      <div>
+        <p class="text-xs font-semibold text-primary uppercase tracking-wide">UC-08 · Admin</p>
+        <h1 class="font-heading font-bold text-2xl text-foreground mt-1">Quản lý menu đồ uống</h1>
+        <p class="text-sm text-muted-foreground mt-1">Thêm, chỉnh sửa, ẩn/hiện hoặc xoá món trong thực đơn.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6">
+        <BaseCard padding="lg" class="flex flex-col gap-4 min-w-0">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h2 class="font-heading font-bold text-foreground">Danh sách món ({{ drinks.length }})</h2>
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  v-model="categoryFilter"
+                  type="text"
+                  placeholder="Lọc theo danh mục…"
+                  class="pl-9 pr-3.5 py-2 text-sm border border-border rounded-xl bg-input-background outline-none transition placeholder-gray-400 focus:ring-2 focus:ring-primary/30 focus:border-primary/60"
+                  @keyup.enter="loadDrinks"
+                />
+              </div>
+              <BaseButton :full-width="false" variant="secondary" @click="loadDrinks">Lọc</BaseButton>
             </div>
           </div>
 
-          <p v-if="isLoading">Đang tải…</p>
-          <p v-else-if="listError" class="error">{{ listError }}</p>
-          <p v-else-if="drinks.length === 0" class="empty">Chưa có món nào.</p>
+          <p v-if="isLoading" class="text-sm text-muted-foreground">Đang tải…</p>
+          <p v-else-if="listError" class="text-sm text-destructive bg-destructive-bg rounded-xl px-3.5 py-2.5">
+            {{ listError }}
+          </p>
+          <p v-else-if="drinks.length === 0" class="text-sm text-muted-foreground">Chưa có món nào.</p>
 
-          <ul v-else class="drinks">
-            <li v-for="drink in drinks" :key="drink.id" :class="{ active: form.id === drink.id }">
-              <div class="drink-main">
-                <div>
-                  <strong>{{ drink.name }}</strong>
-                  <span class="meta">
-                    {{ drink.category }} · {{ Number(drink.price).toLocaleString('vi-VN') }}đ ·
-                    {{ drink.temperature_type }}
-                  </span>
-                  <span v-if="drink.tags?.length" class="tags">{{ drink.tags.join(', ') }}</span>
+          <ul v-else class="flex flex-col gap-3 max-h-[640px] overflow-y-auto pr-1">
+            <li
+              v-for="drink in drinks"
+              :key="drink.id"
+              class="rounded-xl border p-4 flex flex-col gap-3 transition-colors"
+              :class="form.id === drink.id ? 'border-primary bg-secondary/40' : 'border-border'"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 min-w-0">
+                  <div class="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-lg shrink-0">
+                    {{ getCategoryEmoji(drink.category) }}
+                  </div>
+                  <div class="min-w-0 flex flex-col gap-1">
+                    <p class="text-sm font-semibold text-foreground truncate">{{ drink.name }}</p>
+                    <p class="text-xs text-muted-foreground">
+                      {{ drink.category }} · {{ Number(drink.price).toLocaleString('vi-VN') }}đ ·
+                      {{ temperatureLabel(drink.temperature_type) }}
+                    </p>
+                    <p v-if="drink.tags?.length" class="text-xs text-secondary-foreground">
+                      {{ drink.tags.join(', ') }}
+                    </p>
+                  </div>
                 </div>
-                <span class="badge" :class="drink.is_available ? 'badge-on' : 'badge-off'">
+                <span
+                  class="shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
+                  :class="drink.is_available ? 'bg-success-bg text-success' : 'bg-destructive-bg text-destructive'"
+                >
                   {{ drink.is_available ? 'Đang bán' : 'Ngừng bán' }}
                 </span>
               </div>
 
-              <div class="drink-actions">
-                <button type="button" @click="editDrink(drink)">Sửa</button>
-                <button
-                  type="button"
+              <div class="flex gap-2 flex-wrap">
+                <BaseButton :full-width="false" variant="secondary" @click="editDrink(drink)">
+                  <Pencil :size="14" /> Sửa
+                </BaseButton>
+                <BaseButton
+                  :full-width="false"
+                  variant="ghost"
+                  class="border border-border"
                   :disabled="togglingId === drink.id"
                   @click="toggleAvailability(drink)"
                 >
                   {{ drink.is_available ? 'Ngừng bán' : 'Mở bán lại' }}
-                </button>
-                <button
-                  type="button"
-                  class="danger"
+                </BaseButton>
+                <BaseButton
+                  :full-width="false"
+                  variant="danger"
                   :disabled="deletingId === drink.id"
                   @click="deleteDrink(drink)"
                 >
-                  {{ deletingId === drink.id ? 'Đang xoá…' : 'Xoá' }}
-                </button>
+                  <Trash2 :size="14" /> {{ deletingId === drink.id ? 'Đang xoá…' : 'Xoá' }}
+                </BaseButton>
               </div>
             </li>
           </ul>
-        </section>
+        </BaseCard>
 
-        <section class="form-panel">
-          <h2>{{ isEditing ? `Sửa món #${form.id}` : 'Thêm món mới' }}</h2>
+        <BaseCard padding="lg" class="flex flex-col gap-4 h-fit">
+          <SectionHeader :title="isEditing ? `Sửa món #${form.id}` : 'Thêm món mới'" />
 
-          <form @submit.prevent="onSubmit">
-            <label>
-              Tên món
-              <input v-model="form.name" type="text" required />
-              <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name[0] }}</span>
-            </label>
+          <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
+            <FormField v-model="form.name" label="Tên món" required :error="fieldErrors.name?.[0]" />
 
-            <div class="row">
-              <label>
-                Danh mục
-                <input v-model="form.category" type="text" required />
-                <span v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category[0] }}</span>
-              </label>
+            <FormField v-model="form.category" label="Danh mục" required :error="fieldErrors.category?.[0]" />
 
-              <label>
-                Nhiệt độ
-                <select v-model="form.temperature_type">
-                  <option v-for="option in TEMPERATURE_OPTIONS" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </option>
-                </select>
-              </label>
+            <div class="flex flex-col gap-1.5">
+              <p class="text-xs font-semibold text-muted-foreground">Nhiệt độ phục vụ</p>
+              <div class="flex gap-2 flex-wrap">
+                <RadioCard
+                  v-for="option in TEMPERATURE_OPTIONS"
+                  :key="option.value"
+                  :label="option.label"
+                  :icon="option.icon"
+                  :selected="form.temperature_type === option.value"
+                  @select="form.temperature_type = option.value"
+                />
+              </div>
             </div>
 
-            <div class="row">
-              <label>
-                Giá (VNĐ)
-                <input v-model="form.price" type="number" min="0" step="1000" required />
-                <span v-if="fieldErrors.price" class="field-error">{{ fieldErrors.price[0] }}</span>
-              </label>
-
-              <label>
-                Calories
-                <input v-model="form.calories" type="number" min="0" />
-              </label>
+            <div class="grid grid-cols-2 gap-4">
+              <FormField
+                v-model="form.price"
+                label="Giá (VNĐ)"
+                type="number"
+                min="0"
+                step="1000"
+                required
+                :error="fieldErrors.price?.[0]"
+              />
+              <FormField v-model="form.calories" label="Calories" type="number" min="0" />
             </div>
 
-            <label>
-              Mô tả
-              <textarea v-model="form.description" rows="2" />
-            </label>
+            <FormField v-model="form.description" label="Mô tả" multiline :rows="2" />
 
-            <label>
-              Nguyên liệu
-              <textarea v-model="form.ingredients" rows="2" />
-            </label>
+            <FormField v-model="form.ingredients" label="Nguyên liệu" multiline :rows="2" />
 
-            <label>
-              Tags (cách nhau bởi dấu phẩy)
-              <input v-model="form.tagsInput" type="text" placeholder="ví dụ: best_seller, ít_ngọt" />
-            </label>
+            <FormField
+              v-model="form.tagsInput"
+              label="Tags (cách nhau bởi dấu phẩy)"
+              placeholder="vd: best_seller, ít_ngọt"
+            />
 
-            <label>
-              Ảnh (URL)
-              <input v-model="form.image_url" type="text" placeholder="https://..." />
-            </label>
+            <FormField v-model="form.image_url" label="Ảnh (URL)" placeholder="https://..." />
 
-            <label class="checkbox">
-              <input v-model="form.is_available" type="checkbox" />
+            <label class="flex items-center gap-2.5 text-sm text-foreground cursor-pointer select-none">
+              <input v-model="form.is_available" type="checkbox" class="w-4 h-4 rounded accent-current text-primary cursor-pointer" />
               Đang bán
             </label>
 
-            <p v-if="formError" class="error" role="alert">{{ formError }}</p>
-            <p v-if="successMessage" class="success" role="status">{{ successMessage }}</p>
+            <p v-if="formError" class="text-sm text-destructive bg-destructive-bg rounded-xl px-3.5 py-2.5" role="alert">
+              {{ formError }}
+            </p>
+            <p v-if="successMessage" class="text-sm text-success bg-success-bg rounded-xl px-3.5 py-2.5" role="status">
+              {{ successMessage }}
+            </p>
 
-            <div class="form-actions">
-              <button type="submit" :disabled="isSaving">
+            <div class="flex gap-3">
+              <BaseButton type="submit" :full-width="false" :disabled="isSaving">
                 {{ isSaving ? 'Đang lưu…' : isEditing ? 'Cập nhật món' : 'Thêm món' }}
-              </button>
-              <button v-if="isEditing" type="button" class="ghost" @click="resetForm">Huỷ sửa</button>
+              </BaseButton>
+              <BaseButton v-if="isEditing" type="button" :full-width="false" variant="ghost" @click="resetForm">
+                Huỷ sửa
+              </BaseButton>
             </div>
           </form>
-        </section>
+        </BaseCard>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.admin-page {
-  min-height: 100vh;
-  padding: 2rem 1.25rem 3rem;
-  display: flex;
-  justify-content: center;
-}
-
-.wrapper {
-  width: min(100%, 1080px);
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.back {
-  align-self: flex-start;
-  background: none;
-  border: 0;
-  color: #9a3412;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-}
-
-.eyebrow {
-  color: #b45309;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-h1 {
-  font-size: 1.6rem;
-  color: #3f2a1d;
-  margin-bottom: 0.5rem;
-}
-
-h2 {
-  font-size: 1.05rem;
-  color: #3f2a1d;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 1.25rem;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.list-panel,
-.form-panel {
-  background: #fff;
-  border: 1px solid #eadfce;
-  border-radius: 16px;
-  padding: 1.25rem;
-  box-shadow: 0 12px 40px rgba(74, 44, 23, 0.06);
-}
-
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-}
-
-.filter {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.filter input {
-  border: 1px solid #e0d3c2;
-  border-radius: 8px;
-  padding: 0.4rem 0.6rem;
-  font: inherit;
-  font-size: 0.85rem;
-}
-
-.filter button {
-  border: 1px solid #fed7aa;
-  background: #fff7ed;
-  color: #9a3412;
-  border-radius: 8px;
-  padding: 0.4rem 0.7rem;
-  cursor: pointer;
-}
-
-.empty {
-  color: #6b5848;
-}
-
-.drinks {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 0.6rem;
-  max-height: 640px;
-  overflow-y: auto;
-}
-
-.drinks > li {
-  border: 1px solid #eadfce;
-  border-radius: 12px;
-  padding: 0.75rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.drinks > li.active {
-  border-color: #d97706;
-  background: #fffaf3;
-}
-
-.drink-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.6rem;
-}
-
-.drink-main div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.meta {
-  color: #6b5848;
-  font-size: 0.85rem;
-}
-
-.tags {
-  color: #9a3412;
-  font-size: 0.78rem;
-}
-
-.badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.badge-on {
-  background: #f0fdf4;
-  color: #15803d;
-}
-
-.badge-off {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.drink-actions {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.drink-actions button {
-  border: 1px solid #e0d3c2;
-  background: #fffdf8;
-  color: #3f2a1d;
-  border-radius: 8px;
-  padding: 0.35rem 0.65rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.drink-actions button.danger {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.drink-actions button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.88rem;
-  color: #4a3728;
-}
-
-label.checkbox {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-input,
-select,
-textarea {
-  border: 1px solid #e0d3c2;
-  border-radius: 10px;
-  padding: 0.6rem 0.7rem;
-  font: inherit;
-  color: #3f2a1d;
-  background: #fffdf8;
-  resize: vertical;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid #d97706;
-  border-color: #d97706;
-}
-
-.field-error {
-  color: #b91c1c;
-  font-size: 0.78rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.form-actions button[type='submit'] {
-  border: 0;
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  background: #b45309;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.form-actions button[type='submit']:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
-
-.form-actions button.ghost {
-  border: 1px solid #e0d3c2;
-  background: #fff;
-  color: #4a3728;
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  cursor: pointer;
-}
-
-.error {
-  background: #fef2f2;
-  color: #b91c1c;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.85rem;
-}
-
-.success {
-  background: #f0fdf4;
-  color: #15803d;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.85rem;
-}
-</style>

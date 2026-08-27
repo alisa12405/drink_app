@@ -1,24 +1,38 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { Sparkles, X } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 import { preferencesApi } from '@/services/api'
-import { SUGAR_OPTIONS, ICE_OPTIONS } from '@/constants/drinkOptions'
+import { SUGAR_OPTIONS, ICE_OPTIONS, TASTE_TAG_PRESETS, getTasteTagLabel } from '@/constants/drinkOptions'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import FormField from '@/components/ui/FormField.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import RadioCard from '@/components/ui/RadioCard.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
 
 const isLoading = ref(true)
 const isSaving = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
-const tasteTagsInput = ref('')
+const selectedTags = ref([])
+const customTagInput = ref('')
 const sugarLevelDefault = ref('100')
 const iceLevelDefault = ref('normal_ice')
 const allergyNotes = ref('')
 const profileText = ref('')
 
+const customTags = computed(() =>
+  selectedTags.value.filter((tag) => !TASTE_TAG_PRESETS.some((preset) => preset.value === tag)),
+)
+
 function applyPreference(preference) {
-  tasteTagsInput.value = (preference.taste_tags ?? []).join(', ')
+  selectedTags.value = [...(preference.taste_tags ?? [])]
   sugarLevelDefault.value = preference.sugar_level_default
   iceLevelDefault.value = preference.ice_level_default
   allergyNotes.value = preference.allergy_notes ?? ''
@@ -36,19 +50,34 @@ onMounted(async () => {
   }
 })
 
+function toggleTag(tag) {
+  if (selectedTags.value.includes(tag)) {
+    selectedTags.value = selectedTags.value.filter((t) => t !== tag)
+  } else {
+    selectedTags.value = [...selectedTags.value, tag]
+  }
+}
+
+function removeTag(tag) {
+  selectedTags.value = selectedTags.value.filter((t) => t !== tag)
+}
+
+function addCustomTag() {
+  const tag = customTagInput.value.trim().toLowerCase().replace(/\s+/g, '_')
+  if (tag && !selectedTags.value.includes(tag)) {
+    selectedTags.value = [...selectedTags.value, tag]
+  }
+  customTagInput.value = ''
+}
+
 async function onSubmit() {
   errorMessage.value = ''
   successMessage.value = ''
   isSaving.value = true
 
-  const tasteTags = tasteTagsInput.value
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean)
-
   try {
     const { data } = await preferencesApi.update({
-      taste_tags: tasteTags,
+      taste_tags: selectedTags.value,
       sugar_level_default: sugarLevelDefault.value,
       ice_level_default: iceLevelDefault.value,
       allergy_notes: allergyNotes.value || null,
@@ -62,203 +91,165 @@ async function onSubmit() {
   }
 }
 
-function backToHome() {
-  router.push({ name: 'home' })
+async function onLogout() {
+  await auth.logout()
+  await router.replace({ name: 'login' })
 }
 </script>
 
 <template>
-  <div class="preferences-page">
-    <div class="card">
-      <button type="button" class="back" @click="backToHome">← Về trang chủ</button>
-      <p class="eyebrow">UC-02</p>
-      <h1>Sở thích đồ uống</h1>
-      <p class="subtitle">Khai báo sở thích để hệ thống gợi ý đồ uống phù hợp hơn.</p>
+  <div class="min-h-screen bg-background">
+    <AppNavbar :cart-count="0" :show-cart="false">
+      <RouterLink :to="{ name: 'home' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Menu
+      </RouterLink>
+      <RouterLink :to="{ name: 'preferences' }" class="text-sm font-semibold text-primary">
+        Sở thích của tôi
+      </RouterLink>
+      <RouterLink :to="{ name: 'order-history' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Lịch sử đơn hàng
+      </RouterLink>
+      <template v-if="auth.user?.role === 'admin'">
+        <RouterLink :to="{ name: 'admin-menu' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+          Quản lý menu
+        </RouterLink>
+        <RouterLink :to="{ name: 'admin-orders' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+          Quản lý đơn hàng
+        </RouterLink>
+        <RouterLink :to="{ name: 'admin-reports' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+          Báo cáo
+        </RouterLink>
+      </template>
 
-      <p v-if="isLoading">Đang tải…</p>
-
-      <form v-else @submit.prevent="onSubmit">
-        <label>
-          Sở thích (cách nhau bởi dấu phẩy)
-          <input
-            v-model="tasteTagsInput"
-            type="text"
-            placeholder="ví dụ: ngọt, có_caffeine, trái_cây"
-          />
-        </label>
-
-        <div class="row">
-          <label>
-            Mức đường mặc định
-            <select v-model="sugarLevelDefault">
-              <option v-for="option in SUGAR_OPTIONS" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
-
-          <label>
-            Mức đá mặc định
-            <select v-model="iceLevelDefault">
-              <option v-for="option in ICE_OPTIONS" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
+      <template #actions>
+        <div class="hidden md:block text-right leading-tight">
+          <p class="text-xs font-semibold text-foreground">{{ auth.user?.name }}</p>
+          <p class="text-[10px] text-muted-foreground uppercase tracking-wide">{{ auth.user?.role }}</p>
         </div>
-
-        <label>
-          Ghi chú dị ứng
-          <textarea v-model="allergyNotes" rows="3" placeholder="ví dụ: dị ứng đậu phộng" />
-        </label>
-
-        <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-        <p v-if="successMessage" class="success" role="status">{{ successMessage }}</p>
-
-        <button type="submit" :disabled="isSaving">
-          {{ isSaving ? 'Đang lưu…' : 'Lưu sở thích' }}
+        <button
+          type="button"
+          class="text-xs font-semibold text-muted-foreground hover:text-destructive border border-border rounded-lg px-3 py-1.5 transition-colors"
+          @click="onLogout"
+        >
+          Đăng xuất
         </button>
+      </template>
+    </AppNavbar>
+
+    <div class="max-w-[680px] mx-auto px-4 md:px-6 py-8 flex flex-col gap-5">
+      <div>
+        <h1 class="font-heading font-bold text-2xl text-foreground">Sở thích đồ uống</h1>
+        <p class="text-sm text-muted-foreground mt-1">
+          Khai báo sở thích để hệ thống gợi ý đồ uống phù hợp hơn với bạn.
+        </p>
+      </div>
+
+      <p v-if="isLoading" class="text-sm text-muted-foreground">Đang tải…</p>
+
+      <form v-else class="flex flex-col gap-5" @submit.prevent="onSubmit">
+        <BaseCard>
+          <SectionHeader :number="1" title="Sở thích vị giác" />
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="preset in TASTE_TAG_PRESETS"
+              :key="preset.value"
+              type="button"
+              class="px-3.5 py-1.5 rounded-full text-sm font-medium border-2 transition-colors"
+              :class="
+                selectedTags.includes(preset.value)
+                  ? 'bg-secondary border-primary text-primary'
+                  : 'bg-card border-border text-muted-foreground hover:border-accent'
+              "
+              @click="toggleTag(preset.value)"
+            >
+              {{ preset.label }}
+            </button>
+          </div>
+
+          <div v-if="customTags.length" class="flex flex-wrap gap-2 mt-3">
+            <span
+              v-for="tag in customTags"
+              :key="tag"
+              class="inline-flex items-center gap-1.5 pl-3.5 pr-2 py-1.5 rounded-full text-sm font-medium bg-secondary border-2 border-primary text-primary"
+            >
+              {{ getTasteTagLabel(tag) }}
+              <button type="button" class="hover:text-destructive transition-colors" @click="removeTag(tag)">
+                <X :size="14" />
+              </button>
+            </span>
+          </div>
+
+          <div class="flex gap-2 mt-4">
+            <input
+              v-model="customTagInput"
+              type="text"
+              placeholder="Thêm sở thích khác (vd: sữa_yến_mạch)"
+              class="flex-1 px-3.5 py-2.5 text-sm border border-border rounded-xl bg-input-background outline-none transition placeholder-gray-400 focus:ring-2 focus:ring-primary/30 focus:border-primary/60"
+              @keydown.enter.prevent="addCustomTag"
+            />
+            <BaseButton type="button" variant="secondary" :full-width="false" @click="addCustomTag">Thêm</BaseButton>
+          </div>
+        </BaseCard>
+
+        <BaseCard>
+          <SectionHeader :number="2" title="Mức đường & đá mặc định" />
+          <div class="flex flex-col gap-4">
+            <div>
+              <p class="text-xs font-semibold text-muted-foreground mb-2">Mức đường</p>
+              <div class="flex gap-3 flex-wrap">
+                <RadioCard
+                  v-for="option in SUGAR_OPTIONS"
+                  :key="option.value"
+                  :label="option.label"
+                  :selected="sugarLevelDefault === option.value"
+                  @select="sugarLevelDefault = option.value"
+                />
+              </div>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-muted-foreground mb-2">Mức đá</p>
+              <div class="flex gap-3 flex-wrap">
+                <RadioCard
+                  v-for="option in ICE_OPTIONS"
+                  :key="option.value"
+                  :label="option.label"
+                  :selected="iceLevelDefault === option.value"
+                  @select="iceLevelDefault = option.value"
+                />
+              </div>
+            </div>
+          </div>
+        </BaseCard>
+
+        <BaseCard>
+          <SectionHeader :number="3" title="Ghi chú dị ứng" />
+          <FormField
+            v-model="allergyNotes"
+            multiline
+            :rows="3"
+            placeholder="Ví dụ: dị ứng đậu phộng, không dùng được sữa bò..."
+          />
+        </BaseCard>
+
+        <p v-if="errorMessage" class="text-sm text-destructive bg-destructive-bg rounded-xl px-3.5 py-2.5" role="alert">
+          {{ errorMessage }}
+        </p>
+        <p v-if="successMessage" class="text-sm text-success bg-success-bg rounded-xl px-3.5 py-2.5" role="status">
+          {{ successMessage }}
+        </p>
+
+        <BaseButton type="submit" :disabled="isSaving">
+          {{ isSaving ? 'Đang lưu…' : 'Lưu sở thích' }}
+        </BaseButton>
       </form>
 
-      <div v-if="profileText" class="profile-text">
-        <h2>Hồ sơ tổng hợp (dùng để tính gợi ý)</h2>
-        <p>{{ profileText }}</p>
+      <div v-if="profileText" class="bg-muted/40 border border-dashed border-border rounded-2xl p-6">
+        <div class="flex items-center gap-2 mb-2">
+          <Sparkles :size="16" class="text-primary" />
+          <h2 class="text-xs font-bold text-primary uppercase tracking-wide">Hồ sơ tổng hợp dùng để gợi ý</h2>
+        </div>
+        <p class="text-sm text-muted-foreground leading-relaxed">{{ profileText }}</p>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.preferences-page {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding: 2rem 1.25rem 3rem;
-}
-
-.card {
-  width: min(100%, 560px);
-  background: #fff;
-  border: 1px solid #eadfce;
-  border-radius: 16px;
-  padding: 1.75rem;
-  box-shadow: 0 12px 40px rgba(74, 44, 23, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-
-.back {
-  align-self: flex-start;
-  background: none;
-  border: 0;
-  color: #9a3412;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-}
-
-.eyebrow {
-  color: #b45309;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-h1 {
-  font-size: 1.6rem;
-  color: #3f2a1d;
-}
-
-.subtitle {
-  color: #6b5848;
-  font-size: 0.95rem;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.9rem;
-  color: #4a3728;
-}
-
-input,
-select,
-textarea {
-  border: 1px solid #e0d3c2;
-  border-radius: 10px;
-  padding: 0.65rem 0.75rem;
-  font: inherit;
-  color: #3f2a1d;
-  background: #fffdf8;
-  resize: vertical;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid #d97706;
-  border-color: #d97706;
-}
-
-button[type='submit'] {
-  border: 0;
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  background: #b45309;
-  color: #fff;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button[type='submit']:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
-
-.error {
-  background: #fef2f2;
-  color: #b91c1c;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
-}
-
-.success {
-  background: #f0fdf4;
-  color: #15803d;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
-}
-
-.profile-text {
-  border-top: 1px dashed #eadfce;
-  padding-top: 0.9rem;
-  color: #6b5848;
-  font-size: 0.85rem;
-}
-
-.profile-text h2 {
-  font-size: 0.85rem;
-  color: #9a3412;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.3rem;
-}
-</style>

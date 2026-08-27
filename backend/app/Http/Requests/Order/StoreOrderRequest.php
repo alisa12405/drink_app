@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Order;
 
 use App\Enums\IceLevel;
+use App\Enums\OrderType;
 use App\Enums\SugarLevel;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,6 +31,7 @@ class StoreOrderRequest extends FormRequest
             'items.*.sugar_level' => ['nullable', Rule::enum(SugarLevel::class)],
             'items.*.ice_level' => ['nullable', Rule::enum(IceLevel::class)],
             'items.*.note' => ['nullable', 'string', 'max:255'],
+            'order_type' => ['nullable', Rule::enum(OrderType::class)],
             'occasion' => ['nullable', 'string', 'max:100'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lon' => ['nullable', 'numeric', 'between:-180,180'],

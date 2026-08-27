@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\IceLevel;
 use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use App\Enums\SugarLevel;
 use App\Models\Drink;
 use App\Models\Order;
@@ -57,6 +58,33 @@ class OrderTest extends TestCase
 
         $this->assertDatabaseHas('orders', ['user_id' => $user->id, 'total_price' => 103000]);
         $this->assertDatabaseCount('order_items', 2);
+    }
+
+    public function test_order_type_is_stored_in_context_snapshot_without_new_column(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $drink = Drink::factory()->create();
+
+        $response = $this->postJson('/api/orders', [
+            'items' => [['drink_id' => $drink->id, 'quantity' => 1]],
+            'order_type' => OrderType::Takeaway->value,
+            'occasion' => 'sinh nhật bạn',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.context_snapshot.order_type', OrderType::Takeaway->value)
+            ->assertJsonPath('data.context_snapshot.occasion', 'sinh nhật bạn');
+    }
+
+    public function test_order_type_rejects_invalid_value(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $drink = Drink::factory()->create();
+
+        $this->postJson('/api/orders', [
+            'items' => [['drink_id' => $drink->id, 'quantity' => 1]],
+            'order_type' => 'delivery',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['order_type']);
     }
 
     public function test_cannot_order_unavailable_or_missing_drink(): void

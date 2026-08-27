@@ -20,6 +20,7 @@ class OrderItemResource extends JsonResource
             'id' => $this->id,
             'drink_id' => $this->drink_id,
             'drink_name' => $this->whenLoaded('drink', fn () => $this->drink->name),
+            'drink_category' => $this->whenLoaded('drink', fn () => $this->drink->category),
             'quantity' => $this->quantity,
             'sugar_level' => $this->sugar_level->value,
             'ice_level' => $this->ice_level->value,

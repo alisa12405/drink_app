@@ -36,6 +36,7 @@ class OrderController extends Controller
                     'hour' => (int) now()->format('G'),
                     'weather' => null,
                     'temperature' => null,
+                    'order_type' => $request->validated('order_type'),
                     'occasion' => $request->validated('occasion'),
                     'lat' => $request->validated('lat'),
                     'lon' => $request->validated('lon'),

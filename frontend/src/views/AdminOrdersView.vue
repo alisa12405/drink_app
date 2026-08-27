@@ -1,10 +1,21 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+import { PackageOpen } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 import { adminOrdersApi } from '@/services/api'
-import { ORDER_STATUS_LABELS } from '@/constants/drinkOptions'
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_BADGE_CLASSES,
+  getCategoryEmoji,
+  getOrderTypeInfo,
+} from '@/constants/drinkOptions'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
 
 const STATUS_FILTERS = [
   { value: '', label: 'Tất cả' },
@@ -16,12 +27,12 @@ const STATUS_FILTERS = [
 
 const NEXT_ACTIONS = {
   pending: [
-    { status: 'confirmed', label: 'Xác nhận', className: 'confirm' },
-    { status: 'cancelled', label: 'Huỷ đơn', className: 'danger' },
+    { status: 'confirmed', label: 'Xác nhận', variant: 'success' },
+    { status: 'cancelled', label: 'Huỷ đơn', variant: 'danger' },
   ],
   confirmed: [
-    { status: 'done', label: 'Hoàn tất', className: 'confirm' },
-    { status: 'cancelled', label: 'Huỷ đơn', className: 'danger' },
+    { status: 'done', label: 'Hoàn tất', variant: 'success' },
+    { status: 'cancelled', label: 'Huỷ đơn', variant: 'danger' },
   ],
   done: [],
   cancelled: [],
@@ -36,6 +47,15 @@ const updatingKey = ref('')
 
 function statusLabel(status) {
   return ORDER_STATUS_LABELS[status] ?? status
+}
+
+function statusBadgeClass(status) {
+  return ORDER_STATUS_BADGE_CLASSES[status] ?? 'bg-secondary text-secondary-foreground'
+}
+
+function orderTypeLabel(order) {
+  const info = getOrderTypeInfo(order.context_snapshot?.order_type)
+  return info ? `${info.icon} ${info.label}` : null
 }
 
 function nextActionsFor(order) {
@@ -91,314 +111,157 @@ async function changeStatus(order, status) {
   }
 }
 
-function backToHome() {
-  router.push({ name: 'home' })
+async function onLogout() {
+  await auth.logout()
+  await router.replace({ name: 'login' })
 }
 </script>
 
 <template>
-  <div class="admin-orders-page">
-    <div class="wrapper">
-      <button type="button" class="back" @click="backToHome">← Về trang chủ</button>
-      <p class="eyebrow">UC-09 (Admin)</p>
-      <h1>Quản lý đơn hàng</h1>
+  <div class="min-h-screen bg-background">
+    <AppNavbar :cart-count="0" :show-cart="false">
+      <RouterLink :to="{ name: 'home' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Menu
+      </RouterLink>
+      <RouterLink :to="{ name: 'preferences' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Sở thích của tôi
+      </RouterLink>
+      <RouterLink :to="{ name: 'order-history' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Lịch sử đơn hàng
+      </RouterLink>
+      <RouterLink :to="{ name: 'admin-menu' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Quản lý menu
+      </RouterLink>
+      <RouterLink :to="{ name: 'admin-orders' }" class="text-sm font-semibold text-primary">
+        Quản lý đơn hàng
+      </RouterLink>
+      <RouterLink :to="{ name: 'admin-reports' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        Báo cáo
+      </RouterLink>
 
-      <div class="toolbar">
-        <label>
-          Lọc theo trạng thái
-          <select v-model="statusFilter" @change="onFilterChange">
+      <template #actions>
+        <div class="hidden md:block text-right leading-tight">
+          <p class="text-xs font-semibold text-foreground">{{ auth.user?.name }}</p>
+          <p class="text-[10px] text-muted-foreground uppercase tracking-wide">{{ auth.user?.role }}</p>
+        </div>
+        <button
+          type="button"
+          class="text-xs font-semibold text-muted-foreground hover:text-destructive border border-border rounded-lg px-3 py-1.5 transition-colors"
+          @click="onLogout"
+        >
+          Đăng xuất
+        </button>
+      </template>
+    </AppNavbar>
+
+    <div class="max-w-[900px] mx-auto px-4 md:px-6 py-8 flex flex-col gap-6">
+      <div>
+        <p class="text-xs font-semibold text-primary uppercase tracking-wide">UC-09 · Admin</p>
+        <h1 class="font-heading font-bold text-2xl text-foreground mt-1">Quản lý đơn hàng</h1>
+        <p class="text-sm text-muted-foreground mt-1">Theo dõi và cập nhật trạng thái các đơn hàng của khách.</p>
+      </div>
+
+      <BaseCard padding="sm" class="flex items-center justify-between gap-3 flex-wrap">
+        <label class="flex items-center gap-2.5 text-sm text-foreground">
+          <span class="font-medium text-muted-foreground">Lọc theo trạng thái</span>
+          <select
+            v-model="statusFilter"
+            class="text-sm border border-border rounded-xl bg-input-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60"
+            @change="onFilterChange"
+          >
             <option v-for="option in STATUS_FILTERS" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
           </select>
         </label>
-        <span class="total">Tổng: {{ meta.total }} đơn</span>
-      </div>
+        <span class="text-sm text-muted-foreground">Tổng: <strong class="text-foreground">{{ meta.total }}</strong> đơn</span>
+      </BaseCard>
 
-      <p v-if="isLoading">Đang tải…</p>
-      <p v-else-if="listError" class="error">{{ listError }}</p>
-      <p v-else-if="orders.length === 0" class="empty">Không có đơn hàng nào.</p>
+      <p v-if="isLoading" class="text-sm text-muted-foreground">Đang tải…</p>
+      <p v-else-if="listError" class="text-sm text-destructive bg-destructive-bg rounded-xl px-3.5 py-2.5">
+        {{ listError }}
+      </p>
 
-      <ul v-else class="orders">
-        <li v-for="order in orders" :key="order.id">
-          <div class="order-header">
-            <div>
-              <strong>Đơn #{{ order.id }}</strong>
-              <span class="customer">{{ order.user?.name }} · {{ order.user?.email }}</span>
-              <span class="date">{{ new Date(order.created_at).toLocaleString('vi-VN') }}</span>
+      <BaseCard v-else-if="orders.length === 0" padding="lg" class="flex flex-col items-center text-center py-14">
+        <PackageOpen :size="40" class="text-border mb-3" />
+        <p class="text-foreground font-semibold">Không có đơn hàng nào</p>
+        <p class="text-sm text-muted-foreground mt-1">Chưa có đơn nào khớp với bộ lọc hiện tại.</p>
+      </BaseCard>
+
+      <div v-else class="flex flex-col gap-4">
+        <BaseCard v-for="order in orders" :key="order.id" padding="lg">
+          <div class="flex items-start justify-between gap-3 pb-4 border-b border-border">
+            <div class="flex flex-col gap-1 min-w-0">
+              <span class="font-heading font-bold text-foreground">Đơn #{{ order.id }}</span>
+              <span class="text-xs text-muted-foreground truncate">{{ order.user?.name }} · {{ order.user?.email }}</span>
+              <span class="text-xs text-muted-foreground">{{ new Date(order.created_at).toLocaleString('vi-VN') }}</span>
             </div>
-            <span class="status" :class="`status-${order.status}`">{{ statusLabel(order.status) }}</span>
+            <div class="flex flex-col items-end gap-1.5 shrink-0">
+              <span
+                v-if="orderTypeLabel(order)"
+                class="text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap bg-secondary text-secondary-foreground"
+              >
+                {{ orderTypeLabel(order) }}
+              </span>
+              <span
+                class="text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
+                :class="statusBadgeClass(order.status)"
+              >
+                {{ statusLabel(order.status) }}
+              </span>
+            </div>
           </div>
 
-          <ul class="order-items">
-            <li v-for="item in order.items" :key="item.id">
-              {{ item.quantity }}× {{ item.drink_name }}
-              <span class="item-options">({{ item.sugar_level }}% đường, {{ item.ice_level }})</span>
-              — {{ Number(item.subtotal).toLocaleString('vi-VN') }}đ
+          <p v-if="order.context_snapshot?.occasion" class="text-sm text-muted-foreground bg-muted/60 border border-dashed border-border rounded-xl px-3.5 py-2.5 mt-4">
+            📝 {{ order.context_snapshot.occasion }}
+          </p>
+
+          <ul class="flex flex-col gap-2.5 py-4">
+            <li v-for="item in order.items" :key="item.id" class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-base shrink-0">
+                {{ getCategoryEmoji(item.drink_category) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-foreground truncate">{{ item.quantity }}× {{ item.drink_name }}</p>
+                <p class="text-xs text-muted-foreground">{{ item.sugar_level }}% đường · {{ item.ice_level }}</p>
+              </div>
+              <span class="text-sm font-bold text-primary shrink-0">
+                {{ Number(item.subtotal).toLocaleString('vi-VN') }}đ
+              </span>
             </li>
           </ul>
 
-          <div class="order-footer">
-            <strong>Tổng: {{ Number(order.total_price).toLocaleString('vi-VN') }}đ</strong>
+          <div class="flex items-center justify-between gap-3 pt-4 border-t border-border flex-wrap">
+            <span class="font-heading font-bold text-foreground">
+              Tổng: <span class="text-primary">{{ Number(order.total_price).toLocaleString('vi-VN') }}đ</span>
+            </span>
 
-            <div class="actions">
-              <span v-if="nextActionsFor(order).length === 0" class="no-action">Không còn thao tác</span>
-              <button
+            <div class="flex gap-2 flex-wrap">
+              <span v-if="nextActionsFor(order).length === 0" class="text-xs text-muted-foreground">Không còn thao tác</span>
+              <BaseButton
                 v-for="action in nextActionsFor(order)"
                 :key="action.status"
-                type="button"
-                :class="action.className"
+                :full-width="false"
+                :variant="action.variant"
                 :disabled="updatingKey === `${order.id}:${action.status}`"
                 @click="changeStatus(order, action.status)"
               >
-                {{
-                  updatingKey === `${order.id}:${action.status}` ? 'Đang xử lý…' : action.label
-                }}
-              </button>
+                {{ updatingKey === `${order.id}:${action.status}` ? 'Đang xử lý…' : action.label }}
+              </BaseButton>
             </div>
           </div>
-        </li>
-      </ul>
+        </BaseCard>
+      </div>
 
-      <div v-if="!isLoading && orders.length > 0" class="pagination">
-        <button type="button" :disabled="!canGoPrev" @click="goToPage(meta.current_page - 1)">← Trước</button>
-        <span>Trang {{ meta.current_page }} / {{ meta.last_page }}</span>
-        <button type="button" :disabled="!canGoNext" @click="goToPage(meta.current_page + 1)">Sau →</button>
+      <div v-if="!isLoading && orders.length > 0" class="flex items-center justify-center gap-4 text-sm text-foreground">
+        <BaseButton :full-width="false" variant="ghost" class="border border-border" :disabled="!canGoPrev" @click="goToPage(meta.current_page - 1)">
+          ← Trước
+        </BaseButton>
+        <span class="text-muted-foreground">Trang {{ meta.current_page }} / {{ meta.last_page }}</span>
+        <BaseButton :full-width="false" variant="ghost" class="border border-border" :disabled="!canGoNext" @click="goToPage(meta.current_page + 1)">
+          Sau →
+        </BaseButton>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.admin-orders-page {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding: 2rem 1.25rem 3rem;
-}
-
-.wrapper {
-  width: min(100%, 800px);
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-
-.back {
-  align-self: flex-start;
-  background: none;
-  border: 0;
-  color: #9a3412;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-}
-
-.eyebrow {
-  color: #b45309;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-h1 {
-  font-size: 1.6rem;
-  color: #3f2a1d;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  background: #fff;
-  border: 1px solid #eadfce;
-  border-radius: 12px;
-  padding: 0.85rem 1rem;
-}
-
-.toolbar label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.88rem;
-  color: #4a3728;
-}
-
-.toolbar select {
-  border: 1px solid #e0d3c2;
-  border-radius: 8px;
-  padding: 0.4rem 0.6rem;
-  font: inherit;
-  background: #fffdf8;
-}
-
-.total {
-  color: #6b5848;
-  font-size: 0.85rem;
-}
-
-.empty {
-  color: #6b5848;
-}
-
-.orders {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 1rem;
-}
-
-.orders > li {
-  background: #fff;
-  border: 1px solid #eadfce;
-  border-radius: 12px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.6rem;
-}
-
-.order-header div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.customer {
-  color: #4a3728;
-  font-size: 0.85rem;
-}
-
-.date {
-  color: #6b5848;
-  font-size: 0.8rem;
-}
-
-.status {
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  background: #fff7ed;
-  color: #9a3412;
-  white-space: nowrap;
-}
-
-.status-done {
-  background: #f0fdf4;
-  color: #15803d;
-}
-
-.status-cancelled {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.status-confirmed {
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.order-items {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 0.3rem;
-  font-size: 0.9rem;
-  color: #4a3728;
-}
-
-.item-options {
-  color: #6b5848;
-  font-size: 0.8rem;
-}
-
-.order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  border-top: 1px dashed #eadfce;
-  padding-top: 0.6rem;
-}
-
-.actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.no-action {
-  color: #6b5848;
-  font-size: 0.82rem;
-}
-
-.actions button {
-  border: 1px solid #e0d3c2;
-  background: #fffdf8;
-  color: #3f2a1d;
-  border-radius: 8px;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.actions button.confirm {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
-  color: #15803d;
-}
-
-.actions button.danger {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.actions button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  color: #4a3728;
-  font-size: 0.88rem;
-}
-
-.pagination button {
-  border: 1px solid #e0d3c2;
-  background: #fff;
-  color: #3f2a1d;
-  border-radius: 8px;
-  padding: 0.4rem 0.8rem;
-  cursor: pointer;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.error {
-  background: #fef2f2;
-  color: #b91c1c;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
-}
-</style>
