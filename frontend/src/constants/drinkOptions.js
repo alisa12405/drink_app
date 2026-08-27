@@ -19,3 +19,9 @@ export const ORDER_STATUS_LABELS = {
   done: 'Hoàn tất',
   cancelled: 'Đã huỷ',
 }
+
+export const TEMPERATURE_OPTIONS = [
+  { value: 'hot', label: 'Nóng' },
+  { value: 'cold', label: 'Lạnh' },
+  { value: 'both', label: 'Nóng & lạnh' },
+]

@@ -38,6 +38,18 @@ function goToOrderHistory() {
   router.push({ name: 'order-history' })
 }
 
+function goToAdminMenu() {
+  router.push({ name: 'admin-menu' })
+}
+
+function goToAdminOrders() {
+  router.push({ name: 'admin-orders' })
+}
+
+function goToAdminReports() {
+  router.push({ name: 'admin-reports' })
+}
+
 function addToCart(drink) {
   const existing = cart.value.find(
     (item) => item.drink_id === drink.id && item.sugar_level === '100' && item.ice_level === 'normal_ice',
@@ -109,6 +121,15 @@ async function placeOrder() {
       <div class="actions">
         <button type="button" class="ghost" @click="goToPreferences">Sở thích của tôi</button>
         <button type="button" class="ghost" @click="goToOrderHistory">Lịch sử đơn hàng</button>
+        <button v-if="auth.user?.role === 'admin'" type="button" class="ghost" @click="goToAdminMenu">
+          Quản lý menu
+        </button>
+        <button v-if="auth.user?.role === 'admin'" type="button" class="ghost" @click="goToAdminOrders">
+          Quản lý đơn hàng
+        </button>
+        <button v-if="auth.user?.role === 'admin'" type="button" class="ghost" @click="goToAdminReports">
+          Báo cáo
+        </button>
         <button type="button" @click="onLogout">Đăng xuất</button>
       </div>
     </header>

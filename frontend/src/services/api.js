@@ -68,4 +68,16 @@ export const ratingsApi = {
   list: () => apiClient.get('/ratings'),
 }
 
+export const adminOrdersApi = {
+  list: (params) => apiClient.get('/admin/orders', { params }),
+  show: (id) => apiClient.get(`/admin/orders/${id}`),
+  updateStatus: (id, status) => apiClient.patch(`/admin/orders/${id}/status`, { status }),
+}
+
+export const adminReportsApi = {
+  bestSellingDrinks: (params) => apiClient.get('/admin/reports/best-selling-drinks', { params }),
+  recommendationEffectiveness: (params) =>
+    apiClient.get('/admin/reports/recommendation-effectiveness', { params }),
+}
+
 export default apiClient

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DrinkController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PreferenceController;
 use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -39,4 +40,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('drinks', [DrinkController::class, 'store']);
     Route::put('drinks/{drink}', [DrinkController::class, 'update']);
     Route::delete('drinks/{drink}', [DrinkController::class, 'destroy']);
+
+    Route::get('orders', [OrderController::class, 'adminIndex']);
+    Route::get('orders/{order}', [OrderController::class, 'adminShow']);
+    Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus']);
+
+    Route::get('reports/best-selling-drinks', [ReportController::class, 'bestSellingDrinks']);
+    Route::get('reports/recommendation-effectiveness', [ReportController::class, 'recommendationEffectiveness']);
 });

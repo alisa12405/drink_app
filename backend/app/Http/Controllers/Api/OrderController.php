@@ -7,6 +7,7 @@ use App\Enums\OrderStatus;
 use App\Enums\SugarLevel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\StoreOrderRequest;
+use App\Http\Requests\Order\UpdateOrderStatusRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Drink;
 use App\Models\Order;
@@ -113,5 +114,50 @@ class OrderController extends Controller
     private function authorizeOwner(Order $order, User $user): void
     {
         abort_unless($order->user_id === $user->id || $user->isAdmin(), 403);
+    }
+
+    /**
+     * UC-09: Admin xem toàn bộ đơn hàng — lọc theo trạng thái/khách hàng.
+     */
+    public function adminIndex(Request $request): AnonymousResourceCollection
+    {
+        $orders = Order::query()
+            ->with(['user:id,name,email', 'items.drink'])
+            ->when(
+                $request->filled('status'),
+                fn ($query) => $query->where('status', $request->string('status')->toString()),
+            )
+            ->when(
+                $request->filled('user_id'),
+                fn ($query) => $query->where('user_id', $request->integer('user_id')),
+            )
+            ->latest()
+            ->paginate(15);
+
+        return OrderResource::collection($orders);
+    }
+
+    public function adminShow(Order $order): OrderResource
+    {
+        return new OrderResource($order->load(['user:id,name,email', 'items.drink']));
+    }
+
+    /**
+     * UC-09: Admin đổi trạng thái đơn hàng theo đúng chiều nghiệp vụ
+     * (pending -> confirmed -> done, hoặc pending/confirmed -> cancelled).
+     */
+    public function updateStatus(UpdateOrderStatusRequest $request, Order $order): OrderResource
+    {
+        $targetStatus = OrderStatus::from($request->validated('status'));
+
+        abort_unless(
+            $order->status->canTransitionTo($targetStatus),
+            422,
+            "Không thể chuyển đơn từ trạng thái '{$order->status->value}' sang '{$targetStatus->value}'.",
+        );
+
+        $order->update(['status' => $targetStatus]);
+
+        return new OrderResource($order->load(['user:id,name,email', 'items.drink']));
     }
 }
