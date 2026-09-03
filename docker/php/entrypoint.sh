@@ -203,7 +203,23 @@ fi
 chmod -R ugo+rwX storage bootstrap/cache 2>/dev/null || true
 
 echo "[entrypoint] Chay migrate ..."
-php artisan migrate --force || echo "[entrypoint] Canh bao: migrate loi, kiem tra ket noi DB."
+if php artisan migrate --force; then
+  # Data dump phai chay SAU migration: MySQL khoi dong truoc container app nen
+  # khong the dung docker-entrypoint-initdb.d (luc do cac bang Laravel chua ton tai).
+  # dump.sql la idempotent; co the tat tren moi truong khong can data demo bang
+  # LOAD_DEMO_DATA=false trong root .env.
+  if [ "${LOAD_DEMO_DATA:-true}" = "true" ] && [ -f "/var/www/dump.sql" ]; then
+    echo "[entrypoint] Nap du lieu demo tu /var/www/dump.sql ..."
+    MYSQL_PWD="${DB_PASSWORD:-change_me_secret}" mysql \
+      --host="${DB_HOST:-db}" \
+      --port="${DB_PORT:-3306}" \
+      --user="${DB_USERNAME:-drink_app}" \
+      --default-character-set=utf8mb4 \
+      "${DB_DATABASE:-drink_app}" < /var/www/dump.sql
+  fi
+else
+  echo "[entrypoint] Canh bao: migrate loi, bo qua nap du lieu demo."
+fi
 
 echo "[entrypoint] Xong. Backend da san sang tai /var/www/html."
 

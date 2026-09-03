@@ -103,6 +103,19 @@ make ps
 - Frontend (Vue + Vite dev server): http://localhost:5174
 - phpMyAdmin: http://localhost:8082 (user/pass = `DB_USERNAME` / `DB_PASSWORD` trong `.env`)
 
+### Dữ liệu demo tự động
+
+Sau khi Laravel chạy migration, container `app` tự import `database/dump.sql` (mặc định
+`LOAD_DEMO_DATA=true` trong root `.env`). File dump là idempotent: có thể chạy lại khi container
+restart mà không nhân bản các dữ liệu mẫu.
+
+- Admin: `admin@smartdrink.com` / `admin@3618`
+- Customer: `customer@smartdrink.com` / `user@3618`
+
+Đặt `LOAD_DEMO_DATA=false` trong root `.env` nếu không muốn nạp dữ liệu này. Import diễn ra khi
+container `app` khởi động **sau migration**, không phải trong MySQL init, vì các bảng Laravel chưa
+tồn tại tại thời điểm MySQL init lần đầu.
+
 ## Bước 4 — Bắt đầu code
 
 Sau `make up`, các thư mục sau đã sẵn sàng để code tiếp (không cần cài đặt gì thêm):

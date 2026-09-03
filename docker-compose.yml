@@ -10,6 +10,7 @@ services:
     working_dir: /var/www/html
     volumes:
       - ./backend:/var/www/html
+      - ./database/dump.sql:/var/www/dump.sql:ro
     environment:
       - APP_NAME=${APP_NAME:-DrinkApp}
       - APP_URL=http://localhost:${APP_HTTP_PORT:-8080}
@@ -23,6 +24,7 @@ services:
       - REDIS_PORT=${REDIS_PORT:-6379}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - WEATHER_API_KEY=${WEATHER_API_KEY:-}
+      - LOAD_DEMO_DATA=${LOAD_DEMO_DATA:-true}
     depends_on:
       db:
         condition: service_healthy

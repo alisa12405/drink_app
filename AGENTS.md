@@ -231,7 +231,7 @@ Response Resource thường bọc payload trong `{ "data": ... }`; lỗi validat
 | GET | `/api/admin/orders` | optional status/user_id; phân trang 15 |
 | GET | `/api/admin/orders/{order}` | chi tiết + customer |
 | PATCH | `/api/admin/orders/{order}/status` | chuyển trạng thái hợp lệ |
-| GET | `/api/admin/reports/best-selling-drinks` | optional from/to/limit |
+| GET | `/api/admin/reports/best-selling-drinks` | optional from/to/limit; mỗi món có `average_rating` theo thời điểm tạo đánh giá trong khoảng lọc |
 | GET | `/api/admin/reports/recommendation-effectiveness` | optional from/to/window_hours/limit |
 
 Chưa có route `/api/recommendations`; `RecommendationController` chưa được import/đăng ký trong `routes/api.php`.
@@ -325,6 +325,8 @@ Khoảng trống test lớn nhất:
 - [x] **FOUND-01 — Khung Docker full stack**: Nginx, PHP-FPM, MySQL, Redis, phpMyAdmin, Vue dev server và Makefile đã có. Bằng chứng: `docker-compose.yml`, `docker/*`, `Makefile`. Chưa tái chạy được ở lần audit này.
 - [x] **DB-01 — Schema nghiệp vụ và Eloquent models**: 7 bảng nghiệp vụ, enum, quan hệ, casts, fillable, soft delete, constraints đã được hiện thực. Bằng chứng: `backend/database/migrations/*`, `backend/app/Models/*`, feature tests lịch sử.
 - [x] **DATA-01 — Factory/seeder demo**: customer/admin mẫu và menu đồ uống mẫu đã có. Bằng chứng: `DatabaseSeeder`, `DrinkSeeder`, `UserFactory`, `DrinkFactory`.
+- [x] **DATA-02 — SQL dump dữ liệu mẫu**: dữ liệu MySQL lặp lại an toàn cho 2 admin, 1 customer, preference, menu, order, rating và recommendation log đã có; Docker tự import sau migration khi `LOAD_DEMO_DATA=true`. Bằng chứng: `database/dump.sql`, `docker-compose.yml`, `docker/php/entrypoint.sh`; bcrypt đã được xác minh, còn lần import MySQL thực tế thuộc `TEST-01`.
+- [ ] **OPS-02 — Kiểm tra API key ngoài hệ thống**: script PHP không lộ secret kiểm tra OpenAI và OpenWeather/WeatherAPI theo provider đã chọn. Bằng chứng: `backend/scripts/check_api_keys.php`; `BLOCKED` — cần chạy trong Docker để xác minh syntax và hai key thực tế.
 - [x] **UC-01 — Đăng ký/đăng nhập/đăng xuất/profile**: Sanctum token, API, Pinia và UI đã có. Bằng chứng: Auth controller/routes/store/views + `AuthTest`.
 - [x] **UC-02A — Khai báo/cập nhật sở thích explicit**: 1 preference/user, defaults, tag/sugar/ice/allergy UI/API. Bằng chứng: Preference module + `PreferenceTest`.
 - [x] **UC-02B — Tổng hợp profile text**: sở thích + lịch sử mua + rating cao, tránh dispatch khi text không đổi. Bằng chứng: `UserProfileTextService` + tests.
@@ -334,7 +336,7 @@ Khoảng trống test lớn nhất:
 - [x] **UC-07A — Rating/feedback cốt lõi**: chỉ món thuộc order done, upsert unique, list rating của chính user. Bằng chứng: Rating module/UI + `RatingTest`.
 - [x] **UC-08A — Admin CRUD menu**: role guard, create/update/availability/soft delete và UI. Bằng chứng: Drink controller/admin routes/AdminMenu + `DrinkTest`.
 - [x] **UC-09 — Admin quản lý đơn**: list/filter/detail/pagination và state machine. Bằng chứng: Order controller/AdminOrders + `AdminOrderTest`.
-- [x] **UC-10A — Báo cáo món bán chạy**: chỉ đếm order done, date range, quantity/revenue. Bằng chứng: `ReportController`, AdminReports + `ReportTest`.
+- [x] **UC-10A — Báo cáo món bán chạy**: chỉ đếm order done, date range, quantity/revenue và điểm đánh giá trung bình theo khoảng lọc. Bằng chứng: `ReportController`, `AdminReportsView`, `ReportTest`; 2026-09-03 `ReportTest` 7/7 pass, lint riêng `AdminReportsView` và frontend build pass (full lint còn lỗi cũ ở `DrinkCard.vue`/`FormField.vue`).
 - [x] **UI-01 — Design system và 9 màn hình**: Tailwind tokens/components dùng chung, responsive layout, customer/admin views. Bằng chứng: `frontend/src`, `UI_DESIGN_TEMPLATE.md`.
 
 ### 11.2 Ưu tiên P0 — cần làm để hoàn thành tính năng cốt lõi

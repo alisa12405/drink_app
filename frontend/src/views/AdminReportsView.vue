@@ -76,6 +76,12 @@ function positionLabel(position) {
   return `Vị trí #${Number(position) + 1}`
 }
 
+function formatAverageRating(value) {
+  if (value === null || value === undefined) return '—'
+
+  return `${Number(value).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ★`
+}
+
 async function onLogout() {
   await auth.logout()
   await router.replace({ name: 'login' })
@@ -152,6 +158,7 @@ async function onLogout() {
                 <th class="text-left py-2.5 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Món</th>
                 <th class="text-left py-2.5 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Danh mục</th>
                 <th class="text-right py-2.5 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">SL bán</th>
+                <th class="text-right py-2.5 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Đánh giá</th>
                 <th class="text-right py-2.5 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Doanh thu</th>
               </tr>
             </thead>
@@ -167,6 +174,7 @@ async function onLogout() {
                 </td>
                 <td class="py-2.5 px-2 text-muted-foreground">{{ row.drink_category }}</td>
                 <td class="py-2.5 px-2 text-right text-foreground">{{ row.total_quantity }}</td>
+                <td class="py-2.5 px-2 text-right text-foreground">{{ formatAverageRating(row.average_rating) }}</td>
                 <td class="py-2.5 px-2 text-right font-bold text-primary">
                   {{ Number(row.total_revenue).toLocaleString('vi-VN') }}đ
                 </td>

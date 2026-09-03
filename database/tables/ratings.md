@@ -37,6 +37,7 @@ Lưu đánh giá/feedback của user cho món đã uống — phục vụ UC-07.
 - Chỉ được đánh giá món **đã thực sự đặt và hoàn thành** — nên validate ở tầng ứng dụng: tồn tại 1 `order_items` với `order_id` + `drink_id` tương ứng, và `orders.status = 'done'`.
 - Mỗi lần có rating mới hoặc rating được sửa: dispatch `UpdateUserProfileEmbeddingJob` để cập nhật lại `user_preferences.profile_text` + `profile_embedding` (vòng lặp feedback — mục 2.5 SPEC).
 - Rating trung bình của 1 món (dùng để hiển thị ở menu, hoặc làm tín hiệu phụ trợ trong pre-filter/re-rank) nên được **tính động** (`AVG(rating) GROUP BY drink_id`) hoặc cache ở Redis, không lưu cột đếm sẵn trong `drinks` để tránh phải đồng bộ 2 nguồn dữ liệu — có thể bổ sung sau nếu cần tối ưu hiệu năng.
+- UC-10 trả về `average_rating` cho từng món bán chạy. Giá trị này là trung bình các dòng `ratings` có `created_at` nằm trong khoảng `from`/`to` đã chọn; món chưa có đánh giá trong khoảng đó trả về `null`.
 
 ## Ghi chú thiết kế
 

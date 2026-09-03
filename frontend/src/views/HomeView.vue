@@ -23,7 +23,7 @@ onMounted(async () => {
     const { data } = await drinksApi.list()
     drinks.value = data.data ?? []
   } catch {
-    loadError.value = 'Không tải được menu. Kiểm tra backend còn chạy không.'
+    loadError.value = 'Không tải được menu. Vui lòng thử lại sau.'
   }
 })
 

@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
 use App\Models\RecommendationLog;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,10 +21,27 @@ class ReportController extends Controller
     public function bestSellingDrinks(Request $request): JsonResponse
     {
         $limit = min($request->integer('limit', 10), 50);
+        // Keep ratings in a separately aggregated query so each rating never
+        // multiplies an order item when calculating quantities or revenue.
+        $ratings = DB::table('ratings')
+            ->when(
+                $request->filled('from'),
+                fn ($query) => $query->whereDate('ratings.created_at', '>=', $request->date('from')),
+            )
+            ->when(
+                $request->filled('to'),
+                fn ($query) => $query->whereDate('ratings.created_at', '<=', $request->date('to')),
+            )
+            ->select('ratings.drink_id')
+            ->selectRaw('AVG(ratings.rating) as average_rating')
+            ->groupBy('ratings.drink_id');
 
         $rows = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('drinks', 'drinks.id', '=', 'order_items.drink_id')
+            ->leftJoinSub($ratings, 'rating_summary', function (JoinClause $join): void {
+                $join->on('rating_summary.drink_id', '=', 'order_items.drink_id');
+            })
             ->where('orders.status', OrderStatus::Done->value)
             ->when(
                 $request->filled('from'),
@@ -38,6 +56,7 @@ class ReportController extends Controller
             ->selectRaw('drinks.category as drink_category')
             ->selectRaw('SUM(order_items.quantity) as total_quantity')
             ->selectRaw('SUM(order_items.subtotal) as total_revenue')
+            ->selectRaw('MAX(rating_summary.average_rating) as average_rating')
             ->groupBy('order_items.drink_id', 'drinks.name', 'drinks.category')
             ->orderByDesc('total_quantity')
             ->limit($limit)
@@ -47,6 +66,7 @@ class ReportController extends Controller
                 'drink_name' => $row->drink_name,
                 'drink_category' => $row->drink_category,
                 'total_quantity' => (int) $row->total_quantity,
+                'average_rating' => $row->average_rating === null ? null : (float) $row->average_rating,
                 'total_revenue' => (float) $row->total_revenue,
             ]);
 
