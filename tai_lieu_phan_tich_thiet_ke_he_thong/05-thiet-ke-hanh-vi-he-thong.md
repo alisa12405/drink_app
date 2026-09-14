@@ -213,7 +213,82 @@ sequenceDiagram
     F-->>U: Hiển thị và cho thêm vào giỏ
 ```
 
-## 5.8. Biểu đồ hoạt động đặt hàng
+## 5.8. Biểu đồ trình tự xem menu
+
+```mermaid
+sequenceDiagram
+    actor U as Người dùng
+    participant V as HomeView
+    participant A as API Client
+    participant C as DrinkController
+    participant DB as MySQL
+
+    U->>V: Mở menu/chọn category
+    V->>A: GET /api/drinks?category=...
+    A->>C: Request public
+    C->>DB: Lấy món available, chưa xóa
+    DB-->>C: Danh sách món
+    C-->>A: DrinkResource collection
+    A-->>V: Dữ liệu menu
+    alt Có món phù hợp
+        V-->>U: Hiển thị danh sách/chi tiết
+    else Không có món
+        V-->>U: Hiển thị trạng thái rỗng
+    end
+```
+
+## 5.9. Biểu đồ trình tự quản lý menu
+
+```mermaid
+sequenceDiagram
+    actor A as Admin
+    participant V as AdminMenuView
+    participant C as DrinkController
+    participant DB as MySQL
+    participant Q as Queue
+
+    A->>V: Thêm/sửa/bật tắt/xóa món
+    V->>C: Request /api/admin/drinks
+    C->>C: Kiểm tra role và validation
+    alt Dữ liệu hợp lệ
+        C->>DB: Tạo/cập nhật/soft-delete drink
+        opt Nội dung mô tả thay đổi
+            C->>Q: Dispatch embedding job
+        end
+        C-->>V: DrinkResource/thông báo thành công
+        V-->>A: Cập nhật danh sách
+    else Không hợp lệ
+        C-->>V: 401/403/422
+        V-->>A: Hiển thị lỗi
+    end
+```
+
+## 5.10. Biểu đồ trình tự quản lý trạng thái đơn
+
+```mermaid
+sequenceDiagram
+    actor A as Admin
+    participant V as AdminOrdersView
+    participant C as OrderController
+    participant O as Order Model
+    participant DB as MySQL
+
+    A->>V: Chọn đơn và trạng thái tiếp theo
+    V->>C: PATCH /api/admin/orders/{id}/status
+    C->>C: Kiểm tra role/enum
+    C->>O: canTransitionTo(target)
+    alt Chuyển hợp lệ
+        O->>DB: UPDATE status
+        DB-->>O: Thành công
+        C-->>V: OrderResource
+        V-->>A: Trạng thái mới
+    else Chuyển không hợp lệ
+        C-->>V: 422
+        V-->>A: Thông báo không thể chuyển
+    end
+```
+
+## 5.11. Biểu đồ hoạt động đặt hàng
 
 ```mermaid
 flowchart TD
@@ -233,7 +308,7 @@ flowchart TD
     L --> M([Kết thúc])
 ```
 
-## 5.9. Biểu đồ hoạt động quản lý trạng thái đơn
+## 5.12. Biểu đồ hoạt động quản lý trạng thái đơn
 
 ```mermaid
 flowchart TD
@@ -252,7 +327,148 @@ flowchart TD
     G --> B
 ```
 
-## 5.10. Biểu đồ trạng thái đơn hàng
+## 5.13. Biểu đồ hoạt động xác thực
+
+```mermaid
+flowchart TD
+    A([Bắt đầu]) --> B{Đã có tài khoản?}
+    B -- Chưa --> C[Nhập thông tin đăng ký]
+    B -- Có --> D[Nhập email và mật khẩu]
+    C --> E{Dữ liệu hợp lệ?}
+    D --> F{Credentials hợp lệ?}
+    E -- Không --> C
+    F -- Không --> D
+    E -- Có --> G[Tạo user và token]
+    F -- Có --> H[Cấp token]
+    G --> I[Điều hướng theo role]
+    H --> I
+    I --> J([Kết thúc])
+```
+
+## 5.14. Biểu đồ hoạt động cập nhật sở thích
+
+```mermaid
+flowchart TD
+    A([Bắt đầu]) --> B[Tải preference hoặc mặc định]
+    B --> C[Chọn tag, đường, đá và dị ứng]
+    C --> D{Dữ liệu hợp lệ?}
+    D -- Không --> C
+    D -- Có --> E[Upsert preference]
+    E --> F[Tổng hợp profile_text]
+    F --> G{Profile thay đổi?}
+    G -- Có --> H[Dispatch embedding job]
+    G -- Không --> I[Thông báo đã lưu]
+    H --> I
+    I --> J([Kết thúc])
+```
+
+## 5.15. Biểu đồ hoạt động xem menu
+
+```mermaid
+flowchart TD
+    A([Mở menu]) --> B[Tải món available]
+    B --> C{Tải thành công?}
+    C -- Không --> D[Hiển thị lỗi và thử lại]
+    D --> B
+    C -- Có --> E{Chọn danh mục?}
+    E -- Có --> F[Lọc danh sách]
+    E -- Không --> G[Hiển thị toàn bộ]
+    F --> H{Có kết quả?}
+    G --> I[Chọn món xem chi tiết]
+    H -- Không --> J[Hiển thị trạng thái rỗng]
+    H -- Có --> I
+    I --> K([Kết thúc])
+    J --> K
+```
+
+## 5.16. Biểu đồ hoạt động nhận gợi ý
+
+```mermaid
+flowchart TD
+    A([Bắt đầu]) --> B[Chọn occasion và vị trí tùy ý]
+    B --> C[Tạo context]
+    C --> D[Lọc món available]
+    D --> E{Có vector hợp lệ?}
+    E -- Có --> F[Tính cosine và lấy top 10]
+    F --> G{LLM hoạt động?}
+    G -- Có --> H[Re-rank top 5 và giải thích]
+    G -- Không --> I[Rule-based fallback]
+    E -- Không --> I
+    H --> J[Ghi recommendation log]
+    I --> J
+    J --> K[Hiển thị kết quả]
+    K --> L([Kết thúc])
+```
+
+## 5.17. Biểu đồ hoạt động xem và hủy đơn
+
+```mermaid
+flowchart TD
+    A([Mở lịch sử]) --> B[Tải đơn theo trang]
+    B --> C[Chọn đơn]
+    C --> D[Kiểm tra owner và hiển thị chi tiết]
+    D --> E{Customer chọn hủy?}
+    E -- Không --> F([Kết thúc])
+    E -- Có --> G{Trạng thái pending?}
+    G -- Không --> H[Thông báo không thể hủy]
+    G -- Có --> I[Chuyển cancelled]
+    H --> F
+    I --> F
+```
+
+## 5.18. Biểu đồ hoạt động đánh giá món
+
+```mermaid
+flowchart TD
+    A([Mở đơn hoàn tất]) --> B[Chọn món và số sao]
+    B --> C[Nhập nhận xét]
+    C --> D{Owner, done, item và rating hợp lệ?}
+    D -- Không --> E[Hiển thị lỗi]
+    E --> B
+    D -- Có --> F[Upsert rating]
+    F --> G[Tổng hợp lại profile]
+    G --> H{Profile thay đổi?}
+    H -- Có --> I[Dispatch embedding job]
+    H -- Không --> J[Thông báo đã lưu]
+    I --> J
+    J --> K([Kết thúc])
+```
+
+## 5.19. Biểu đồ hoạt động quản lý menu
+
+```mermaid
+flowchart TD
+    A([Admin mở menu]) --> B[Chọn thêm, sửa, bật/tắt hoặc xóa]
+    B --> C[Nhập/xác nhận dữ liệu]
+    C --> D{Role và dữ liệu hợp lệ?}
+    D -- Không --> E[Hiển thị lỗi]
+    E --> B
+    D -- Có --> F[Lưu thay đổi hoặc soft-delete]
+    F --> G{Nguồn embedding thay đổi?}
+    G -- Có --> H[Dispatch embedding job]
+    G -- Không --> I[Cập nhật danh sách]
+    H --> I
+    I --> J([Kết thúc])
+```
+
+## 5.20. Biểu đồ hoạt động xem báo cáo
+
+```mermaid
+flowchart TD
+    A([Admin mở báo cáo]) --> B[Chọn from, to, limit/window]
+    B --> C{Điều kiện hợp lệ?}
+    C -- Không --> D[Hiển thị lỗi validation]
+    D --> B
+    C -- Có --> E[Chọn loại báo cáo]
+    E --> F[Tổng hợp món bán chạy]
+    E --> G[Đối chiếu log và order]
+    F --> H[Hiển thị quantity, revenue, rating]
+    G --> I[Hiển thị conversion và vị trí]
+    H --> J([Kết thúc])
+    I --> J
+```
+
+## 5.21. Biểu đồ trạng thái đơn hàng
 
 ```mermaid
 stateDiagram-v2
@@ -267,7 +483,7 @@ stateDiagram-v2
 
 Không có chuyển trạng thái ngược; không cho phép `pending → done`.
 
-## 5.11. Biểu đồ trạng thái tài khoản/phiên
+## 5.22. Biểu đồ trạng thái tài khoản/phiên
 
 ```mermaid
 stateDiagram-v2

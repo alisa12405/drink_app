@@ -22,7 +22,7 @@ Các tên bảng, enum, module và luồng nghiệp vụ được lựa chọn p
 - `README-DOCKER.md` cùng tài liệu backend/frontend: định hướng công nghệ và môi trường.
 - `chuong_3.md`: cách tổ chức chương khảo sát, use case và các mô hình thiết kế.
 
-Toàn bộ `do_an_mau.*` được loại khỏi nguồn nội dung. Phần khảo sát sử dụng Highlands Coffee CTM Cầu Giấy làm đơn vị nghiên cứu. Thông tin nhận diện đơn vị được dẫn từ nguồn chính thức; bộ dữ liệu phỏng vấn/Google Forms phục vụ bài tập lớn và không phải tài liệu do Highlands Coffee xác nhận.
+Toàn bộ `do_an_mau.*` được loại khỏi nguồn nội dung. Phần khảo sát sử dụng cửa hàng cà phê nhỏ Mộc Nhiên Coffee làm tình huống nghiên cứu của bài tập lớn; hồ sơ đơn vị, nhân sự, phỏng vấn và dữ liệu Google Forms được xây dựng thống nhất với bài toán Smart Drink.
 
 ## 3. Phạm vi hệ thống được thiết kế
 
@@ -37,14 +37,15 @@ Các dịch vụ hỗ trợ gồm Recommendation Engine, OpenAI API, Weather API
 
 | File | Nội dung |
 |---|---|
-| [01-khao-sat-va-yeu-cau-he-thong.md](01-khao-sat-va-yeu-cau-he-thong.md) | Khảo sát Highlands Coffee CTM Cầu Giấy, bộ câu hỏi Google Forms, kết quả, phát biểu bài toán và yêu cầu. |
+| [01-khao-sat-va-yeu-cau-he-thong.md](01-khao-sat-va-yeu-cau-he-thong.md) | Khảo sát Mộc Nhiên Coffee, phỏng vấn, Google Forms, đánh giá và đề xuất hệ thống. |
 | [02-tac-nhan-va-ca-su-dung.md](02-tac-nhan-va-ca-su-dung.md) | Tác nhân, sơ đồ use case tổng quát và quan hệ giữa các chức năng. |
-| [03-dac-ta-ca-su-dung.md](03-dac-ta-ca-su-dung.md) | Đặc tả và sơ đồ use case chi tiết UC-01 đến UC-10. |
+| [03-dac-ta-ca-su-dung.md](03-dac-ta-ca-su-dung.md) | Phân rã UC-01 đến UC-10 thành các UC con và đặc tả riêng. |
 | [04-kien-truc-va-thiet-ke-thanh-phan.md](04-kien-truc-va-thiet-ke-thanh-phan.md) | Kiến trúc tổng thể, phân lớp, thành phần và luồng dữ liệu dự kiến. |
 | [05-thiet-ke-hanh-vi-he-thong.md](05-thiet-ke-hanh-vi-he-thong.md) | Biểu đồ trình tự, hoạt động và trạng thái. |
 | [06-thiet-ke-lop-va-trien-khai.md](06-thiet-ke-lop-va-trien-khai.md) | Biểu đồ lớp và mô hình triển khai Docker đề xuất. |
 | [07-thiet-ke-co-so-du-lieu.md](07-thiet-ke-co-so-du-lieu.md) | ERD, từ điển dữ liệu vật lý, khóa và ràng buộc. |
 | [08-thiet-ke-api-giao-dien-va-an-toan.md](08-thiet-ke-api-giao-dien-va-an-toan.md) | Hợp đồng REST API, thiết kế màn hình, an toàn, hiệu năng và truy vết yêu cầu. |
+| [09-bieu-do-thanh-phan.md](09-bieu-do-thanh-phan.md) | Biểu đồ thành phần chi tiết, giao diện, phụ thuộc và ánh xạ UC. |
 
 ## 5. Quy ước
 
@@ -56,4 +57,4 @@ Các dịch vụ hỗ trợ gồm Recommendation Engine, OpenAI API, Weather API
 
 ## 6. Cách đọc
 
-Đọc file 01–03 để nắm bài toán và nghiệp vụ; file 04–07 để triển khai kiến trúc và dữ liệu; file 08 để xây dựng API, giao diện, kiểm thử chấp nhận và các cơ chế an toàn.
+Đọc file 01–03 để nắm bài toán và nghiệp vụ; file 04–07 để triển khai kiến trúc, hành vi và dữ liệu; file 08 để xây dựng API, giao diện và an toàn; file 09 để kiểm tra ranh giới và phụ thuộc giữa các thành phần.
