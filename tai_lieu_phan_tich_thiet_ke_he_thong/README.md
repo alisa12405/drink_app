@@ -45,7 +45,7 @@ Các dịch vụ hỗ trợ gồm Recommendation Engine, OpenAI API, Weather API
 | [06-thiet-ke-lop-va-trien-khai.md](06-thiet-ke-lop-va-trien-khai.md) | Biểu đồ lớp và mô hình triển khai Docker đề xuất. |
 | [07-thiet-ke-co-so-du-lieu.md](07-thiet-ke-co-so-du-lieu.md) | ERD, từ điển dữ liệu vật lý, khóa và ràng buộc. |
 | [08-thiet-ke-api-giao-dien-va-an-toan.md](08-thiet-ke-api-giao-dien-va-an-toan.md) | Hợp đồng REST API, thiết kế màn hình, an toàn, hiệu năng và truy vết yêu cầu. |
-| [09-bieu-do-thanh-phan.md](09-bieu-do-thanh-phan.md) | Biểu đồ thành phần chi tiết, giao diện, phụ thuộc và ánh xạ UC. |
+| [09-bieu-do-thanh-phan.md](09-bieu-do-thanh-phan.md) | Biểu đồ thành phần theo bố cục giao diện vai trò → chức năng → dữ liệu/dịch vụ, kèm giao diện, phụ thuộc và ánh xạ UC. |
 
 ## 5. Quy ước
 

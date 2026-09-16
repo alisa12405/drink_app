@@ -116,46 +116,76 @@ Quy tắc frontend:
 
 ## 4.5. Sơ đồ thành phần theo module
 
+Sơ đồ được tổ chức cùng dạng với Component Diagram trong tài liệu mẫu: các giao diện theo vai trò nằm bên trái, nhóm chức năng nghiệp vụ nằm giữa và kho dữ liệu/dịch vụ phụ thuộc nằm bên phải. Bản chi tiết, ký hiệu và bảng giao diện giữa các thành phần được trình bày tại [09-bieu-do-thanh-phan.md](09-bieu-do-thanh-phan.md).
+
 ```mermaid
-flowchart TB
-    subgraph Frontend
-        AuthUI[Login/Register]
-        CustomerUI[Home/Preferences/Checkout/Orders]
-        RecUI[Recommendation Results]
-        AdminUI[Admin Menu/Orders/Reports]
-        Shared[Shared UI components]
-        Client[Axios API wrappers]
+flowchart LR
+    subgraph UI["GIAO DIỆN THEO VAI TRÒ"]
+        direction TB
+        GuestUI[["Giao diện<br/>Khách vãng lai"]]
+        CustomerUI[["Giao diện<br/>Khách hàng"]]
+        AdminUI[["Giao diện<br/>Quản trị viên"]]
     end
 
-    subgraph Backend
-        AuthM[Auth module]
-        PrefM[Preference module]
-        DrinkM[Drink module]
-        OrderM[Order module]
-        RatingM[Rating module]
-        ReportM[Report module]
-        RecM[Recommendation module]
+    subgraph FUNCTION["THÀNH PHẦN CHỨC NĂNG"]
+        direction TB
+        AuthM[["Xác thực và phiên"]]
+        PrefM[["Sở thích và hồ sơ"]]
+        MenuM[["Xem menu"]]
+        RecM[["Gợi ý cá nhân hóa"]]
+        CartM[["Giỏ hàng và đặt món"]]
+        CustomerOrderM[["Theo dõi và hủy đơn"]]
+        RatingM[["Đánh giá đồ uống"]]
+        AdminMenuM[["Quản lý menu"]]
+        AdminOrderM[["Quản lý đơn"]]
+        ReportM[["Báo cáo"]]
     end
 
-    AuthUI --> Client
-    CustomerUI --> Client
-    RecUI --> Client
-    AdminUI --> Client
-    AuthUI --> Shared
-    CustomerUI --> Shared
-    RecUI --> Shared
-    AdminUI --> Shared
-    Client --> AuthM
-    Client --> PrefM
-    Client --> DrinkM
-    Client --> OrderM
-    Client --> RatingM
-    Client --> ReportM
-    Client --> RecM
-    RatingM --> PrefM
-    DrinkM --> RecM
-    PrefM --> RecM
-    RecM --> ReportM
+    subgraph SUPPORT["DỮ LIỆU VÀ DỊCH VỤ HỖ TRỢ"]
+        direction TB
+        DB[("Database<br/>MySQL")]
+        Redis[["Redis / queue worker"]]
+        OpenAI[["OpenAI API"]]
+        Weather[["Weather API"]]
+    end
+
+    GuestUI --> AuthM
+    GuestUI --> MenuM
+    CustomerUI --> AuthM
+    CustomerUI --> PrefM
+    CustomerUI --> MenuM
+    CustomerUI --> RecM
+    CustomerUI --> CartM
+    CustomerUI --> CustomerOrderM
+    CustomerUI --> RatingM
+    AdminUI --> AuthM
+    AdminUI --> AdminMenuM
+    AdminUI --> AdminOrderM
+    AdminUI --> ReportM
+
+    AuthM --> DB
+    PrefM --> DB
+    MenuM --> DB
+    RecM --> DB
+    CartM --> DB
+    CustomerOrderM --> DB
+    RatingM --> DB
+    AdminMenuM --> DB
+    AdminOrderM --> DB
+    ReportM --> DB
+
+    PrefM --> Redis
+    RatingM --> Redis
+    AdminMenuM --> Redis
+    RecM --> Redis
+    Redis --> OpenAI
+    RecM --> OpenAI
+    RecM --> Weather
+
+    classDef component fill:#ffffff,stroke:#111827,color:#111827,stroke-width:1px;
+    classDef database fill:#ffffff,stroke:#111827,color:#111827,stroke-width:1.5px;
+    class GuestUI,CustomerUI,AdminUI,AuthM,PrefM,MenuM,RecM,CartM,CustomerOrderM,RatingM,AdminMenuM,AdminOrderM,ReportM,Redis,OpenAI,Weather component;
+    class DB database;
 ```
 
 ## 4.6. Phân chia trách nhiệm module
