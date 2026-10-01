@@ -23,7 +23,7 @@ INSERT INTO `users` (
     'Quản trị viên Một',
     'admin@smartdrink.com',
     '2026-08-20 08:00:00',
-    '$2y$12$cB4nGcdqNOa44JmAQCmANeoStWlGYVTRzUEbrHP0P8bQgYYk353zy',
+    '$2y$12$zk1zg2IPm.Nu9Kd1rDOzR.ZGfZ8VNhE/l/anif.tz3f/Fjgrb2TC2',
     'admin',
     NULL,
     '2026-08-20 08:00:00',

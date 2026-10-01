@@ -1,4 +1,4 @@
-.PHONY: up down build restart logs sh sh-frontend ps
+.PHONY: up down build restart logs sh sh-frontend ps deploy-cloudflare logs-cloudflare
 
 # Build image va khoi dong toan bo stack. Lan dau se TU DONG cai Laravel 11
 # (backend/) va Vue 3 + Vite (frontend/) - xem docker/php/entrypoint.sh va
@@ -20,6 +20,13 @@ logs:
 
 ps:
 	docker compose ps
+
+# Build production frontend and run it behind a remotely managed Cloudflare Tunnel.
+deploy-cloudflare:
+	docker compose --profile cloudflare up -d --build site cloudflared
+
+logs-cloudflare:
+	docker compose logs -f site cloudflared
 
 # Vao shell container PHP (backend) de chay composer/artisan
 sh:
