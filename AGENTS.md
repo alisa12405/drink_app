@@ -14,9 +14,9 @@ Dự án là web app đặt đồ uống có cá nhân hoá theo sở thích và
 Thứ tự ưu tiên khi các nguồn không đồng nhất:
 
 1. Yêu cầu mới nhất của người dùng.
-2. `SPEC_smart-drink-recommendation-app.md` cho phạm vi và quy tắc nghiệp vụ.
+2. `doc/SPEC_smart-drink-recommendation-app.md` cho phạm vi và quy tắc nghiệp vụ.
 3. Migration, route và code đang chạy cho trạng thái hiện thực thực tế.
-4. `database/*.md`, `UI_DESIGN_TEMPLATE.md`, README cho giải thích thiết kế.
+4. `doc/database/*.md`, `doc/UI_DESIGN_TEMPLATE.md`, README cho giải thích thiết kế.
 
 Không xem tài liệu cũ là bằng chứng một tính năng đã chạy. Một task chỉ được đánh dấu `[x]` khi code, migration/API/UI liên quan đã hoàn tất và kiểm thử phù hợp đã pass.
 
@@ -27,8 +27,8 @@ Trước khi coding:
 - Đọc `git status --short`; không ghi đè thay đổi chưa commit của người khác.
 - Đọc task trong mục 11, các acceptance criteria, route/controller/service/model/test liên quan.
 - Nếu sửa backend, đọc thêm `backend/AGENTS.md`. File này hiện yêu cầu PHP, Composer và Laravel Boost trước khi thay đổi application code.
-- Nếu sửa schema, đối chiếu cả migration thực tế lẫn `database/DATABASE_SCHEMA.md` và `database/tables/*.md`.
-- Nếu thay đổi UI lớn, cập nhật `UI_DESIGN_TEMPLATE.md` trong cùng lượt làm việc theo quy tắc ở đầu file đó.
+- Nếu sửa schema, đối chiếu cả migration thực tế lẫn `doc/database/DATABASE_SCHEMA.md` và `doc/database/tables/*.md`.
+- Nếu thay đổi UI lớn, cập nhật `doc/UI_DESIGN_TEMPLATE.md` trong cùng lượt làm việc theo quy tắc ở đầu file đó.
 - Không đọc/ghi lại giá trị thật từ `.env`; chỉ tài liệu hoá tên biến từ `.env.example`.
 
 Trong khi coding:
@@ -52,10 +52,8 @@ Khi hoàn tất task:
 ```text
 drink_app/
 ├── AGENTS.md                         # File hiện tại: bản đồ + task tracker
-├── SPEC_smart-drink-recommendation-app.md
-│                                     # Hợp đồng nghiệp vụ, UC-01..UC-10, luồng recommendation
-├── UI_DESIGN_TEMPLATE.md             # Design system và trạng thái triển khai UI
-├── README-DOCKER.md                  # Triển khai production qua domain/Cloudflare Tunnel
+├── DEPLOY.md                         # Triển khai từ bản clone GitHub
+├── doc/                              # SPEC, UI, Docker/Cloudflare, backend/frontend và schema docs
 ├── Makefile                          # up/down/build/restart/logs/shell/ps
 ├── docker-compose.yml                # Production: PHP/Nginx/Vue/MySQL/Redis/queue/cloudflared
 ├── docker/                           # Dockerfile, entrypoint, Nginx, MySQL
@@ -78,7 +76,7 @@ drink_app/
 │   ├── src/stores/                   # Pinia auth/cart/menu
 │   ├── src/services/api.js           # Axios client và toàn bộ API wrappers
 │   └── src/assets/                   # Tailwind entry, fonts, design tokens
-├── database/                         # ERD/schema/table docs đã đối chiếu model/migration
+├── database/                         # SQL dump và các bảng tính dữ liệu menu
 └── template_frontend/                # React/Figma reference, không phải app production
 ```
 
@@ -336,10 +334,10 @@ Khoảng trống test lớn nhất:
 - [x] **DOC-00 — Agent project guide và task tracker**: kiến trúc, module/API/schema/runtime, test map, rủi ro, backlog có acceptance criteria và quy tắc cập nhật đã được tổng hợp trong file này. Bằng chứng: `AGENTS.md`, audit source ngày 2026-09-03.
 - [x] **DOC-04 — Báo cáo quản lý dự án và khởi tạo Taiga**: báo cáo Word 51 trang theo ba chương khởi tạo, triển khai và kết thúc, kế hoạch 6 người trong 8 tuần; tạo dự án Scrum riêng tư trên Taiga với 4 Epic, 20 story (82 điểm), 4 sprint, 5 task mẫu và 8 trang Wiki quản lý cùng trang tổng quan. Đã thêm 4 tài khoản Active, 2 thành viên chờ thông tin. Bằng chứng: `output/bao_cao_taiga/Bao_cao_Quan_ly_du_an_Smart_Drink_Taiga.docx`, `output/bao_cao_taiga/minh_chung/*`, https://tree.taiga.io/project/alisa12405-smart-drink-web-app/backlog; ngày 2026-10-01 đã cập nhật mục lục bằng Word và kiểm tra hình render đủ 51 trang. Chỉ hoàn tất hồ sơ và cấu hình quản lý; story giữ New, chưa chạy test ứng dụng hoặc nghiệm thu sản phẩm.
 - [x] **DOC-03 — Tài liệu phân tích và thiết kế hệ thống**: bộ tài liệu Markdown theo hướng khảo sát/phân tích/thiết kế trước khi lập trình, dùng cửa hàng nhỏ Mộc Nhiên Coffee làm tình huống nghiên cứu, gồm phỏng vấn, 19 câu Google Forms, 31 UC con thuộc 10 nhóm, biểu đồ UC/trình tự/hoạt động/thành phần, kiến trúc, lớp/triển khai, cơ sở dữ liệu và API/UI/an toàn. Bằng chứng: `tai_lieu_phan_tich_thiet_ke_he_thong/*.md`; cập nhật Component Diagram theo bố cục mẫu ngày 2026-09-15; kiểm tra liên kết, code fence và whitespace đã pass.
-- [x] **FOUND-01 — Docker production full stack**: Cloudflare Tunnel → static Vue/Nginx → Laravel Nginx/PHP-FPM, MySQL, Redis và queue worker; không publish service nội bộ, không bind mount source. Bằng chứng: `docker-compose.yml`, `docker/*`, `Makefile`, `README-DOCKER.md`.
+- [x] **FOUND-01 — Docker production full stack**: Cloudflare Tunnel → static Vue/Nginx → Laravel Nginx/PHP-FPM, MySQL, Redis và queue worker; không publish service nội bộ, không bind mount source. Bằng chứng: `docker-compose.yml`, `docker/*`, `Makefile`, `doc/README-DOCKER.md`.
 - [x] **DB-01 — Schema nghiệp vụ và Eloquent models**: 8 bảng nghiệp vụ gồm notifications, enum, quan hệ, casts, fillable, soft delete và constraints đã được hiện thực. Bằng chứng: `backend/database/migrations/*`, `backend/app/Models/*`, feature tests.
 - [x] **DATA-01 — Factory/seeder demo**: customer/admin mẫu và danh mục 50 món từ `database/drinks_menu.xlsx` đã có; seeder đồng bộ theo tên và không xóa món ngoài danh mục. Bằng chứng: `backend/database/data/drinks_menu.csv`, `DatabaseSeeder`, `DrinkSeeder`, `MissingDrinkSeeder`, `UserFactory`, `DrinkFactory`.
-- [x] **DATA-02 — SQL dump dữ liệu mẫu**: dump idempotent vẫn được giữ để nạp thủ công khi cần; production chỉ tự chạy migration, không import/seed lại lúc restart nên không ghi đè dữ liệu vận hành. Bằng chứng: `database/dump.sql`, `docker/php/entrypoint.sh`, `README-DOCKER.md`.
+- [x] **DATA-02 — SQL dump dữ liệu mẫu**: dump idempotent vẫn được giữ để nạp thủ công khi cần; production chỉ tự chạy migration, không import/seed lại lúc restart nên không ghi đè dữ liệu vận hành. Bằng chứng: `database/dump.sql`, `docker/php/entrypoint.sh`, `doc/README-DOCKER.md`.
 - [x] **OPS-02 — Kiểm tra API key ngoài hệ thống**: script PHP không lộ secret kiểm tra OpenAI và OpenWeather/WeatherAPI theo provider đã chọn. Bằng chứng: `backend/scripts/check_api_keys.php`; 2026-10-01 chạy trong Docker, OpenAI và OpenWeather đều trả HTTP 200; `test_api.md` chỉ lưu kết quả đã làm sạch.
 - [x] **UC-01 — Đăng ký/đăng nhập/đăng xuất/profile**: Sanctum token, API, Pinia và UI đã có. Bằng chứng: Auth controller/routes/store/views + `AuthTest`.
 - [x] **UC-02A — Khai báo/cập nhật sở thích explicit**: 1 preference/user, defaults, tag/sugar/ice/allergy UI/API. Bằng chứng: Preference module + `PreferenceTest`.
@@ -352,7 +350,7 @@ Khoảng trống test lớn nhất:
 - [x] **NOTIFY-01 — Thông báo đơn hàng online**: lưu database; chuông/panel/polling 10 giây/toast; admin nhận đơn mới, customer nhận đặt hàng thành công và trạng thái mới; ownership/read API. Bằng chứng: notification classes/controller/routes, `NotificationCenter.vue`, `NotificationTest`.
 - [x] **UC-09 — Admin quản lý đơn**: list/filter/detail/pagination và state machine. Bằng chứng: Order controller/AdminOrders + `AdminOrderTest`.
 - [x] **UC-10A — Báo cáo món bán chạy**: chỉ đếm order done, date range, quantity/revenue và điểm đánh giá trung bình theo khoảng lọc. Bằng chứng: `ReportController`, `AdminReportsView`, `ReportTest`; 2026-09-03 `ReportTest` 7/7 pass, lint riêng `AdminReportsView` và frontend build pass (full lint còn lỗi cũ ở `DrinkCard.vue`/`FormField.vue`).
-- [x] **UI-01 — Design system và 9 màn hình**: Tailwind tokens/components dùng chung, responsive layout, customer/admin views; menu rộng tối đa 1800px, dùng thẻ lớn 3 cột trên màn rộng, ảnh trọn khung và phân trang 12 món/trang. Bằng chứng: `frontend/src`, `UI_DESIGN_TEMPLATE.md`; 2026-10-01 frontend lint/build pass.
+- [x] **UI-01 — Design system và 9 màn hình**: Tailwind tokens/components dùng chung, responsive layout, customer/admin views; menu rộng tối đa 1800px, dùng thẻ lớn 3 cột trên màn rộng, ảnh trọn khung và phân trang 12 món/trang. Bằng chứng: `frontend/src`, `doc/UI_DESIGN_TEMPLATE.md`; 2026-10-01 frontend lint/build pass.
 
 ### 11.2 Ưu tiên P0 — cần làm để hoàn thành tính năng cốt lõi
 
@@ -391,7 +389,7 @@ Khoảng trống test lớn nhất:
   - Bằng chứng: service `queue` healthy; backfill 50 món được consume đủ, 50 vector được ghi, Redis queue trống và failed job bằng 0.
 - [x] **DOC-01 — Đồng bộ stack Laravel 13 và tài liệu triển khai**
   - Acceptance: chốt version mục tiêu; đồng bộ SPEC/README/Docker comments/composer.
-  - Bằng chứng: `SPEC_smart-drink-recommendation-app.md`, PHP Dockerfile, `README-DOCKER.md`, `CLOUDFLARE_DEPLOYMENT.md`; production chốt Laravel 13/PHP 8.3.
+  - Bằng chứng: `doc/SPEC_smart-drink-recommendation-app.md`, PHP Dockerfile, `doc/README-DOCKER.md`, `doc/CLOUDFLARE_DEPLOYMENT.md`; production chốt Laravel 13/PHP 8.3.
 
 ### 11.3 Ưu tiên P1 — hoàn thiện hợp đồng nghiệp vụ và độ tin cậy
 
@@ -438,7 +436,7 @@ Khoảng trống test lớn nhất:
 6. **FR1 chưa đủ:** profile text không tự sync ngay sau khi order thay đổi/hoàn tất.
 7. **Context chưa đủ:** order snapshot có vị trí nhưng weather/temperature luôn null.
 8. **Size bị thiếu:** UC-05 trong SPEC nhắc size nhưng DB/API/UI không có.
-9. **Schema phải tiếp tục được đồng bộ:** mọi migration/model mới cần cập nhật `database/DATABASE_SCHEMA.md` và `database/tables/*.md` trong cùng task.
+9. **Schema phải tiếp tục được đồng bộ:** mọi migration/model mới cần cập nhật `doc/database/DATABASE_SCHEMA.md` và `doc/database/tables/*.md` trong cùng task.
 10. **Frontend history mất phần sau trang 1:** API paginate nhưng UI không điều hướng trang.
 11. **Frontend không có automated tests:** chỉ có lint/build lịch sử.
 12. **Artefact tham khảo:** `template_frontend/` và `template_frontend.zip` chỉ là nguồn thiết kế, không được copy vào image production nhờ `.dockerignore`.

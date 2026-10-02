@@ -5,6 +5,7 @@
 Các lệnh kiểm tra cục bộ (khi đã cài Node 22):
 
 ```bash
+cd frontend
 npm ci --legacy-peer-deps
 npm run lint
 npm run build

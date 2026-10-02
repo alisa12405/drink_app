@@ -1,5 +1,7 @@
 # Trien khai `drinks.hmmh.click` qua Cloudflare Tunnel
 
+> Day la ghi chu cho ten mien hien co. Khi trien khai rieng tu GitHub, xem [DEPLOY.md](../DEPLOY.md) va thay hostname bang ten mien ban quan ly. Chay cac lenh tu root repository.
+
 Kien truc trien khai:
 
 ```text
