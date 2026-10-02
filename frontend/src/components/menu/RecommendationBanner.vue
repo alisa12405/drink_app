@@ -57,14 +57,37 @@ const weatherLabel = computed(() => {
     mist: 'Có sương',
   }
   const label = labels[context.value.weather] ?? context.value.weather
-  const temperature = Number(context.value.temperature)
+  const temperature = context.value.temperature
 
-  return Number.isFinite(temperature) ? `${label}, ${temperature.toFixed(1)}°C` : label
+  return temperature !== null && temperature !== undefined && Number.isFinite(Number(temperature))
+    ? `${label}, ${Number(temperature).toFixed(1)}°C`
+    : label
 })
 
 const strategyLabel = computed(() =>
   meta.value?.fallback ? 'Gợi ý dự phòng' : 'Gợi ý cá nhân hóa',
 )
+
+function briefSuggestion(recommendationContext) {
+  const hour = Number(recommendationContext?.hour)
+  const temperature = recommendationContext?.temperature
+  const isHot = temperature !== null && temperature !== undefined && Number(temperature) >= 28
+  const isCold = temperature !== null && temperature !== undefined && Number(temperature) <= 20
+
+  if (Number.isFinite(hour) && hour >= 18) {
+    return isHot
+      ? 'Buổi tối trời nóng, hãy thử nước trái cây mát và ít caffeine để dễ thư giãn.'
+      : 'Buổi tối, hãy thử một món nhẹ, ít caffeine để dễ thư giãn.'
+  }
+  if (isHot) return 'Trời nóng, hãy thử trà trái cây hoặc một món mát lạnh.'
+  if (isCold) return 'Trời se lạnh, hãy thử một món nóng để dễ thưởng thức hơn.'
+  if (Number.isFinite(hour) && hour < 10) {
+    return 'Buổi sáng, hãy thử cà phê hoặc một món thanh nhẹ để bắt đầu ngày mới.'
+  }
+  return 'Hãy thử một món hợp khẩu vị và thời điểm hiện tại của bạn.'
+}
+
+const contextSuggestion = computed(() => briefSuggestion(context.value))
 
 function startCooldown(seconds = 60) {
   cooldownSeconds.value = Math.max(1, Number(seconds) || 60)
@@ -118,7 +141,7 @@ function locateForWeather({ silent = false } = {}) {
       isLocating.value = false
       void loadContext()
     },
-    { enableHighAccuracy: false, timeout: 7000, maximumAge: 30 * 60 * 1000 },
+    { enableHighAccuracy: false, timeout: 7000, maximumAge: 0 },
   )
 }
 
@@ -216,15 +239,9 @@ onBeforeUnmount(() => {
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <h2 class="font-heading text-base font-semibold">Hôm nay uống gì?</h2>
-            <span
-              v-if="meta"
-              class="text-[10px] font-semibold rounded-full bg-card border border-border px-2 py-0.5 text-primary"
-            >
-              {{ strategyLabel }}
-            </span>
           </div>
           <p class="text-sm text-muted-foreground mt-1 leading-relaxed">
-            {{ context?.suggestion || 'Đang chuẩn bị gợi ý cơ bản theo thời điểm hiện tại…' }}
+            {{ isContextLoading && !context ? 'Đang chuẩn bị gợi ý…' : contextSuggestion }}
           </p>
         </div>
       </div>
@@ -325,10 +342,12 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-else-if="recommendations.length > 0">
-      <p class="mt-4 rounded-xl border border-primary/15 bg-card px-4 py-3 text-sm leading-relaxed text-foreground">
-        <span class="font-semibold text-primary">Vì sao chọn các món này?</span>
-        {{ meta?.reason_summary }}
-      </p>
+      <div class="mt-4 rounded-xl border border-primary/15 bg-card px-4 py-3">
+        <span class="text-[10px] font-semibold rounded-full border border-border px-2 py-0.5 text-primary">
+          {{ strategyLabel }}
+        </span>
+        <p class="mt-2 text-sm leading-relaxed text-foreground">{{ meta?.reason_summary }}</p>
+      </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mt-3">
         <article

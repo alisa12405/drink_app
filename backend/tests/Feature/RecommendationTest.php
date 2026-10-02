@@ -106,6 +106,7 @@ class RecommendationTest extends TestCase
 
         $responseIds = collect($response->json('data'))->pluck('drink.id')->all();
         $this->assertNotContains($unavailable->id, $responseIds);
+        $this->assertNotSame($response->json('meta.context.suggestion'), $response->json('meta.reason_summary'));
         $log = RecommendationLog::query()->sole();
         $this->assertCount(5, $log->final_ranked_ids);
         $this->assertNotContains($unavailable->id, $log->candidate_drink_ids);
@@ -162,6 +163,7 @@ class RecommendationTest extends TestCase
                     'content' => [[
                         'type' => 'output_text',
                         'text' => json_encode([
+                            'summary' => 'Bạn thích cà phê, nên những món này được chọn theo khẩu vị của bạn.',
                             'recommendations' => [[
                                 'drink_id' => $preferredId,
                                 'explanation' => 'Phù hợp nhất với hồ sơ vị giác.',
@@ -175,6 +177,7 @@ class RecommendationTest extends TestCase
         $this->getJson('/api/recommendations')
             ->assertOk()
             ->assertJsonPath('meta.strategy', 'hybrid_llm')
+            ->assertJsonPath('meta.reason_summary', 'Bạn thích cà phê, nên những món này được chọn theo khẩu vị của bạn.')
             ->assertJsonPath('data.0.drink.id', $preferredId)
             ->assertJsonCount(5, 'data');
 
@@ -182,8 +185,10 @@ class RecommendationTest extends TestCase
             $input = json_decode($request['input'], true, flags: JSON_THROW_ON_ERROR);
 
             return count($input['candidates']) === 10
+                && $input['taste_tags'] === ['coffee']
                 && $request['store'] === false
-                && $request['text']['format']['type'] === 'json_schema';
+                && $request['text']['format']['type'] === 'json_schema'
+                && in_array('summary', $request['text']['format']['schema']['required'], true);
         });
     }
 }

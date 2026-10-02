@@ -12,9 +12,10 @@ class RecommendationReranker
     /**
      * @param  array<int, array<string, mixed>>  $candidates
      * @param  array<string, mixed>  $context
-     * @return array<int, array{drink_id: int, explanation: string}>|null
+     * @param  array<int, string>  $tasteTags
+     * @return array{summary: string, recommendations: array<int, array{drink_id: int, explanation: string}>}|null
      */
-    public function rerank(array $candidates, array $context): ?array
+    public function rerank(array $candidates, array $context, array $tasteTags = []): ?array
     {
         $key = (string) config('services.openai.key');
         if ($key === '' || $candidates === [] || Cache::get('openai:reranker:unavailable') === true) {
@@ -22,7 +23,8 @@ class RecommendationReranker
         }
 
         $input = [
-            'context' => $context,
+            'context' => array_diff_key($context, ['suggestion' => true]),
+            'taste_tags' => array_slice($tasteTags, 0, 5),
             'candidates' => array_map(static fn (array $candidate): array => [
                 'drink_id' => $candidate['drink_id'],
                 'name' => $candidate['name'],
@@ -42,7 +44,7 @@ class RecommendationReranker
                 ->post('/responses', [
                     'model' => config('services.openai.rerank_model'),
                     'store' => false,
-                    'instructions' => 'Chọn tối đa 5 đồ uống phù hợp nhất. Chỉ dùng drink_id trong candidates. Giải thích bằng tiếng Việt, ngắn gọn, không đưa tuyên bố an toàn y tế.',
+                    'instructions' => 'Chọn tối đa 5 đồ uống phù hợp nhất. Chỉ dùng drink_id trong candidates. Viết summary là một câu tiếng Việt ngắn (tối đa 30 từ) giải thích vì sao nhóm món được chọn, dựa trên taste_tags nếu có và ngữ cảnh thực tế. Nếu temperature >= 28°C thì gọi là trời nóng, <= 20°C là trời lạnh; không gọi nhiệt độ cao là mát mẻ. Viết explanation ngắn cho từng món. Không đưa tuyên bố an toàn y tế.',
                     'input' => json_encode($input, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                     'max_output_tokens' => 700,
                     'text' => [
@@ -53,6 +55,7 @@ class RecommendationReranker
                             'schema' => [
                                 'type' => 'object',
                                 'properties' => [
+                                    'summary' => ['type' => 'string'],
                                     'recommendations' => [
                                         'type' => 'array',
                                         'maxItems' => 5,
@@ -67,7 +70,7 @@ class RecommendationReranker
                                         ],
                                     ],
                                 ],
-                                'required' => ['recommendations'],
+                                'required' => ['summary', 'recommendations'],
                                 'additionalProperties' => false,
                             ],
                         ],
@@ -82,11 +85,14 @@ class RecommendationReranker
 
         $text = $this->outputText($response->json());
         $decoded = json_decode($text, true);
-        if (! is_array($decoded) || ! is_array($decoded['recommendations'] ?? null)) {
+        if (! is_array($decoded) || ! is_array($decoded['recommendations'] ?? null) || ! is_string($decoded['summary'] ?? null)) {
             throw new RuntimeException('OpenAI returned an invalid recommendation payload.');
         }
 
-        return $decoded['recommendations'];
+        return [
+            'summary' => mb_substr(trim($decoded['summary']), 0, 180),
+            'recommendations' => $decoded['recommendations'],
+        ];
     }
 
     /**

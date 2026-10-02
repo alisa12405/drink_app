@@ -376,11 +376,11 @@ Khoảng trống test lớn nhất:
   - Acceptance: chỉ món available; weather-aware pre-filter; fallback khi thiếu location/weather/vector/API.
   - Acceptance: cosine rank → top 10 → LLM structured re-rank top 5; không gửi toàn menu.
   - Acceptance: ghi `recommendation_logs` với context/candidate/final/explanation theo đúng thứ tự.
-  - Bằng chứng: `RecommendationService`, `RecommendationReranker`, `RecommendationTest`; OpenAI lỗi vẫn trả fallback cùng schema.
+  - Bằng chứng: `RecommendationService`, `RecommendationReranker`, `RecommendationTest`; OpenAI lỗi vẫn trả fallback cùng schema. Ngày 2026-10-02: structured output bổ sung `summary` một câu dựa trên sở thích/ngữ cảnh và top ứng viên; `reason_summary` trả câu OpenAI hoặc câu dự phòng riêng, `RecommendationTest` 7 test/59 assertion, full backend suite 79 test/325 assertion và Pint pass; gọi OpenAI thật với 32,6°C trả câu về trời nóng, không lộ key.
 - [x] **REC-06 — Nối recommendation vào frontend**
   - Acceptance: wrapper trong `services/api.js`; `RecommendationBanner`/Home hiển thị loading/error/fallback/results và cho thêm món vào cart.
   - Acceptance: xin vị trí là tùy chọn; từ chối vị trí vẫn có gợi ý rule-based.
-  - Bằng chứng: `services/api.js`, `RecommendationBanner.vue`; context giờ/thời tiết/gợi ý chung hiển thị trước, top 5 chỉ tải khi bấm, có lý do tổng quát/từng món, popup đăng nhập/sở thích; frontend lint/build pass ngày 2026-10-01.
+  - Bằng chứng: `services/api.js`, `RecommendationBanner.vue`; context giờ/thời tiết/gợi ý chung hiển thị trước, top 5 chỉ tải khi bấm, có lý do tổng quát/từng món, popup đăng nhập/sở thích; frontend lint/build pass ngày 2026-10-01. Ngày 2026-10-02: gợi ý chung rút ngắn theo giờ/nhiệt độ, trình duyệt yêu cầu tọa độ mới; sau phản hồi người dùng, đã bỏ dòng chú thích cache thời tiết, dùng `meta.reason_summary` cho đoạn sau top 5 và chuyển badge cá nhân hóa tới đoạn đó; `docker compose build site` lint/build pass, đã cập nhật app/webserver/site, webserver/site healthy, domain trang/API HTTP 200 và JS mới không còn dòng chú thích.
 - [x] **REC-07 — Test UC-04**
   - Acceptance: feature tests cho auth/validation/logging/ranking/fallback; unit tests services/jobs; external calls đều fake.
   - Acceptance: đo response time cục bộ và tránh N+1/call OpenAI lặp.
