@@ -73,6 +73,23 @@ class AdminOrderTest extends TestCase
             ->assertJsonPath('data.user.id', $customer->id);
     }
 
+    public function test_admin_can_view_guest_order_with_customer_name(): void
+    {
+        Sanctum::actingAs(User::factory()->admin()->create());
+        $order = Order::query()->create([
+            'user_id' => null,
+            'customer_name' => 'Khách vãng lai',
+            'status' => OrderStatus::Pending,
+            'total_price' => 50000,
+        ]);
+
+        $this->getJson("/api/admin/orders/{$order->id}")
+            ->assertOk()
+            ->assertJsonPath('data.customer_name', 'Khách vãng lai')
+            ->assertJsonPath('data.is_guest', true)
+            ->assertJsonMissingPath('data.user');
+    }
+
     public function test_admin_can_transition_order_status_through_valid_chain(): void
     {
         Sanctum::actingAs(User::factory()->admin()->create());

@@ -44,4 +44,4 @@ Lưu chi tiết từng món trong 1 đơn hàng (đơn hàng có thể gồm nhi
 
 - **`unit_price` và `subtotal` là 2 cột bổ sung so với SPEC gốc** (mục 2.2 SPEC chỉ liệt kê `order_id, drink_id, quantity, sugar_level, ice_level, note`), được thêm sau khi xác nhận với người yêu cầu. Lý do: nếu không lưu snapshot giá, khi Admin đổi `drinks.price` sau này, mọi phép tính/hiển thị lại giá của đơn hàng cũ (VD trong báo cáo thống kê UC-10, hoá đơn lịch sử UC-06) sẽ bị sai lệch do phải join động với giá **hiện tại** của `drinks`. Phương án thay thế đã cân nhắc nhưng không chọn: không lưu giá, tính on-the-fly qua join — chấp nhận rủi ro sai lệch lịch sử.
 - **`created_at`/`updated_at` là bổ sung theo convention Laravel** (SPEC không liệt kê timestamp nào cho bảng này) — giữ để nhất quán và hỗ trợ audit/debug, không ảnh hưởng nghiệp vụ.
-- Model tương ứng: `app/Models/OrderItem.php` (hiện là stub trống, cần bổ sung `$fillable`).
+- Model tương ứng: `app/Models/OrderItem.php` đã khai báo `$fillable`, casts và quan hệ Eloquent.

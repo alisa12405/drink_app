@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { Pencil, Search, Trash2 } from 'lucide-vue-next'
+import { ImagePlus, Pencil, Search, Trash2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useMenuStore } from '@/stores/menu'
 import { adminDrinksApi } from '@/services/api'
 import { TEMPERATURE_OPTIONS, getCategoryEmoji } from '@/constants/drinkOptions'
 import AppNavbar from '@/components/layout/AppNavbar.vue'
@@ -14,6 +15,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+const publicMenu = useMenuStore()
 
 const drinks = ref([])
 const isLoading = ref(true)
@@ -27,6 +29,8 @@ const isSaving = ref(false)
 const formError = ref('')
 const fieldErrors = ref({})
 const successMessage = ref('')
+const imageFile = ref(null)
+const imagePreview = ref('')
 
 function emptyForm() {
   return {
@@ -65,12 +69,16 @@ async function loadDrinks() {
 onMounted(loadDrinks)
 
 function resetForm() {
+  if (imagePreview.value.startsWith('blob:')) URL.revokeObjectURL(imagePreview.value)
   Object.assign(form, emptyForm())
+  imageFile.value = null
+  imagePreview.value = ''
   formError.value = ''
   fieldErrors.value = {}
 }
 
 function editDrink(drink) {
+  if (imagePreview.value.startsWith('blob:')) URL.revokeObjectURL(imagePreview.value)
   form.id = drink.id
   form.name = drink.name
   form.description = drink.description ?? ''
@@ -82,9 +90,18 @@ function editDrink(drink) {
   form.tagsInput = (drink.tags ?? []).join(', ')
   form.image_url = drink.image_url ?? ''
   form.is_available = drink.is_available
+  imageFile.value = null
+  imagePreview.value = drink.image_url ?? ''
   formError.value = ''
   fieldErrors.value = {}
   successMessage.value = ''
+}
+
+function onImageSelected(event) {
+  const [file] = event.target.files ?? []
+  if (imagePreview.value.startsWith('blob:')) URL.revokeObjectURL(imagePreview.value)
+  imageFile.value = file ?? null
+  imagePreview.value = file ? URL.createObjectURL(file) : form.image_url
 }
 
 function buildPayload() {
@@ -112,14 +129,25 @@ async function onSubmit() {
   successMessage.value = ''
 
   try {
+    let savedDrink
     if (isEditing.value) {
-      await adminDrinksApi.update(form.id, buildPayload())
+      const { data } = await adminDrinksApi.update(form.id, buildPayload())
+      savedDrink = data.data
       successMessage.value = 'Đã cập nhật món.'
     } else {
-      await adminDrinksApi.create(buildPayload())
+      const { data } = await adminDrinksApi.create(buildPayload())
+      savedDrink = data.data
       successMessage.value = 'Đã thêm món mới.'
     }
+
+    if (imageFile.value && savedDrink?.id) {
+      await adminDrinksApi.uploadImage(savedDrink.id, imageFile.value)
+      successMessage.value = isEditing.value
+        ? 'Đã cập nhật món và ảnh.'
+        : 'Đã thêm món mới và tải ảnh lên.'
+    }
     await loadDrinks()
+    void publicMenu.refresh()
     resetForm()
   } catch (error) {
     if (error.response?.status === 422) {
@@ -136,6 +164,7 @@ async function toggleAvailability(drink) {
   try {
     await adminDrinksApi.update(drink.id, { is_available: !drink.is_available })
     await loadDrinks()
+    void publicMenu.refresh()
   } catch {
     listError.value = 'Không thể cập nhật trạng thái món.'
   } finally {
@@ -151,6 +180,7 @@ async function deleteDrink(drink) {
     await adminDrinksApi.remove(drink.id)
     if (form.id === drink.id) resetForm()
     await loadDrinks()
+    void publicMenu.refresh()
   } catch {
     listError.value = 'Không thể xoá món này.'
   } finally {
@@ -207,8 +237,7 @@ async function onLogout() {
 
     <div class="max-w-[1200px] mx-auto px-4 md:px-6 py-8 flex flex-col gap-6">
       <div>
-        <p class="text-xs font-semibold text-primary uppercase tracking-wide">UC-08 · Admin</p>
-        <h1 class="font-heading font-bold text-2xl text-foreground mt-1">Quản lý menu đồ uống</h1>
+        <h1 class="font-heading font-bold text-2xl text-foreground">Quản lý menu đồ uống</h1>
         <p class="text-sm text-muted-foreground mt-1">Thêm, chỉnh sửa, ẩn/hiện hoặc xoá món trong thực đơn.</p>
       </div>
 
@@ -246,8 +275,9 @@ async function onLogout() {
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="flex items-start gap-3 min-w-0">
-                  <div class="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-lg shrink-0">
-                    {{ getCategoryEmoji(drink.category) }}
+                  <div class="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-lg shrink-0 overflow-hidden">
+                    <img v-if="drink.image_url" :src="drink.image_url" :alt="drink.name" class="h-full w-full object-cover" />
+                    <span v-else>{{ getCategoryEmoji(drink.category) }}</span>
                   </div>
                   <div class="min-w-0 flex flex-col gap-1">
                     <p class="text-sm font-semibold text-foreground truncate">{{ drink.name }}</p>
@@ -339,7 +369,30 @@ async function onLogout() {
               placeholder="vd: best_seller, ít_ngọt"
             />
 
-            <FormField v-model="form.image_url" label="Ảnh (URL)" placeholder="https://..." />
+            <div class="flex flex-col gap-2">
+              <p class="text-xs font-semibold text-muted-foreground">Ảnh đồ uống</p>
+              <label
+                class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-input-background px-3.5 py-3 transition hover:border-primary/50"
+              >
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary">
+                  <ImagePlus :size="19" />
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm font-semibold text-foreground">
+                    {{ imageFile?.name || 'Chọn ảnh từ máy' }}
+                  </span>
+                  <span class="block text-[11px] text-muted-foreground">JPG, PNG hoặc WebP · tối đa 5 MB</span>
+                </span>
+                <input class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" @change="onImageSelected" />
+              </label>
+              <p v-if="fieldErrors.image?.[0]" class="text-xs text-destructive">{{ fieldErrors.image[0] }}</p>
+              <img
+                v-if="imagePreview"
+                :src="imagePreview"
+                alt="Xem trước ảnh đồ uống"
+                class="h-44 w-full rounded-xl border border-border bg-secondary object-contain"
+              />
+            </div>
 
             <label class="flex items-center gap-2.5 text-sm text-foreground cursor-pointer select-none">
               <input v-model="form.is_available" type="checkbox" class="w-4 h-4 rounded accent-current text-primary cursor-pointer" />

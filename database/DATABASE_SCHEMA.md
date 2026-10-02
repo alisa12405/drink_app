@@ -11,6 +11,7 @@
 5. [order_items](#5-order_items)
 6. [ratings](#6-ratings)
 7. [recommendation_logs](#7-recommendation_logs)
+8. `notifications` — thông báo bền cho Customer/Admin, dùng morph `notifiable`, có `data` JSON và `read_at`.
 
 ---
 
@@ -104,6 +105,7 @@
 | `temperature_type` | ENUM('hot','cold','both') | NO | 'both' | Loại nhiệt độ phục vụ |
 | `tags` | JSON | YES | NULL | VD: `["best_seller","ít_ngọt"]` |
 | `image_url` | VARCHAR(255) | YES | NULL | Đường dẫn ảnh món |
+| `image_path` | VARCHAR(255) | YES | NULL | File ảnh do Admin tải lên disk public |
 | `is_available` | BOOLEAN | NO | true | Còn bán / đã ẩn khỏi menu |
 | `description_embedding` | JSON | YES | NULL | Vector từ name+ingredients+tags |
 | `created_at` | TIMESTAMP | YES | NULL | |
@@ -136,14 +138,15 @@
 
 ## 4. `orders`
 
-**Mục đích**: Lưu đơn hàng của user, kèm snapshot ngữ cảnh lúc đặt (UC-05, UC-06, UC-09).
+**Mục đích**: Lưu đơn hàng của customer hoặc khách vãng lai, kèm snapshot ngữ cảnh lúc đặt (UC-05, UC-06, UC-09).
 
 **Cấu trúc bảng**:
 
 | Cột | Kiểu | Null | Default | Mô tả |
 |---|---|---|---|---|
 | `id` | BIGINT UNSIGNED (PK, AI) | NO | | Khoá chính |
-| `user_id` | BIGINT UNSIGNED (FK → users.id) | NO | | Chủ đơn hàng |
+| `user_id` | BIGINT UNSIGNED (FK → users.id) | YES | NULL | Chủ đơn đăng nhập; `NULL` với khách vãng lai |
+| `customer_name` | VARCHAR(100) | YES | NULL | Snapshot tên customer hoặc tên guest nhập lúc checkout |
 | `status` | ENUM('pending','confirmed','done','cancelled') | NO | 'pending' | Trạng thái đơn |
 | `total_price` | DECIMAL(10,2) | NO | | Tổng tiền = Σ(order_items.subtotal) |
 | `context_snapshot` | JSON | YES | NULL | `{hour, weather, temperature, occasion}` lúc đặt |

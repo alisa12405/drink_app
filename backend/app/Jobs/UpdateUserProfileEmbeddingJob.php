@@ -3,27 +3,71 @@
 namespace App\Jobs;
 
 use App\Models\UserPreference;
+use App\Services\EmbeddingService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class UpdateUserProfileEmbeddingJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public UserPreference $preference) {}
+    public int $tries = 3;
+
+    public int $timeout = 30;
+
+    public function __construct(public UserPreference $preference)
+    {
+        $this->onQueue('embeddings');
+    }
 
     /**
-     * Gọi OpenAI Embeddings trên profile_text tổng hợp (SPEC mục 2.5).
-     * Logic EmbeddingService sẽ được điền ở bước Recommendation.
+     * @return int[]
      */
-    public function handle(): void
+    public function backoff(): array
+    {
+        return [10, 60, 300];
+    }
+
+    public function handle(EmbeddingService $embeddingService): void
     {
         $preference = $this->preference->fresh();
-
-        if ($preference === null || $preference->profile_text === null) {
+        if ($preference === null) {
             return;
         }
 
-        // TODO: EmbeddingService::embed() khi OpenAI được tích hợp.
+        $profileText = trim((string) $preference->profile_text);
+        if ($profileText === '') {
+            $preference->updateQuietly(['profile_embedding' => null]);
+
+            return;
+        }
+
+        $vector = $embeddingService->embed($profileText);
+        if ($vector === []) {
+            return;
+        }
+
+        $current = $preference->fresh();
+        if ($current === null) {
+            return;
+        }
+
+        if (trim((string) $current->profile_text) !== $profileText) {
+            self::dispatch($current);
+
+            return;
+        }
+
+        $current->updateQuietly(['profile_embedding' => $vector]);
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        Log::error('User profile embedding job failed.', [
+            'preference_id' => $this->preference->getKey(),
+            'exception' => $exception === null ? null : $exception::class,
+        ]);
     }
 }

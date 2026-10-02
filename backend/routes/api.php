@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DrinkController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PreferenceController;
 use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\ReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,13 +21,24 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::get('drinks', [DrinkController::class, 'index']);
+Route::get('drinks/{drink}/image', [DrinkController::class, 'image']);
 Route::get('drinks/{drink}', [DrinkController::class, 'show']);
+Route::get('recommendation-context', [RecommendationController::class, 'context'])
+    ->middleware('throttle:60,1');
+Route::post('orders', [OrderController::class, 'store'])
+    ->middleware(['auth.optional', 'throttle:10,1']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('recommendations', [RecommendationController::class, 'index'])
+        ->middleware('throttle:recommendations');
+
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+
     Route::get('preferences', [PreferenceController::class, 'show']);
     Route::put('preferences', [PreferenceController::class, 'update']);
 
-    Route::post('orders', [OrderController::class, 'store']);
     Route::get('orders/history', [OrderController::class, 'history']);
     Route::get('orders/{order}', [OrderController::class, 'show']);
     Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel']);
@@ -38,6 +51,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('drinks', [DrinkController::class, 'adminIndex']);
     Route::get('drinks/{drink}', [DrinkController::class, 'adminShow']);
     Route::post('drinks', [DrinkController::class, 'store']);
+    Route::post('drinks/{drink}/image', [DrinkController::class, 'uploadImage']);
     Route::put('drinks/{drink}', [DrinkController::class, 'update']);
     Route::delete('drinks/{drink}', [DrinkController::class, 'destroy']);
 

@@ -8,6 +8,7 @@ use App\Enums\SugarLevel;
 use App\Models\Drink;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Rating;
 use App\Models\RecommendationLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,6 +81,7 @@ class ReportTest extends TestCase
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.drink_id', $tra->id)
             ->assertJsonPath('data.0.total_quantity', 3)
+            ->assertJsonPath('data.0.average_rating', null)
             ->assertJsonPath('data.0.total_revenue', 90000)
             ->assertJsonPath('data.1.drink_id', $cafe->id)
             ->assertJsonPath('data.1.total_quantity', 1);
@@ -96,6 +98,43 @@ class ReportTest extends TestCase
         $this->getJson('/api/admin/reports/best-selling-drinks?from='.now()->subDay()->toDateString())
             ->assertOk()
             ->assertJsonPath('data.0.total_quantity', 5);
+    }
+
+    public function test_best_selling_drinks_returns_average_rating_within_selected_period(): void
+    {
+        $this->freezeTime(function (): void {
+            Sanctum::actingAs(User::factory()->admin()->create());
+            $drink = Drink::factory()->create();
+
+            $firstOrder = $this->createOrderWithItem($drink, 1, 30000, OrderStatus::Done);
+            $secondOrder = $this->createOrderWithItem($drink, 1, 30000, OrderStatus::Done);
+            $outsidePeriodOrder = $this->createOrderWithItem($drink, 1, 30000, OrderStatus::Done);
+
+            Rating::query()->create([
+                'user_id' => $firstOrder->user_id,
+                'drink_id' => $drink->id,
+                'order_id' => $firstOrder->id,
+                'rating' => 4,
+            ]);
+            Rating::query()->create([
+                'user_id' => $secondOrder->user_id,
+                'drink_id' => $drink->id,
+                'order_id' => $secondOrder->id,
+                'rating' => 2,
+            ]);
+            $outsidePeriodRating = Rating::query()->create([
+                'user_id' => $outsidePeriodOrder->user_id,
+                'drink_id' => $drink->id,
+                'order_id' => $outsidePeriodOrder->id,
+                'rating' => 5,
+            ]);
+            $outsidePeriodRating->created_at = now()->subDays(3);
+            $outsidePeriodRating->save();
+
+            $this->getJson('/api/admin/reports/best-selling-drinks?from='.now()->subDay()->toDateString())
+                ->assertOk()
+                ->assertJsonPath('data.0.average_rating', 3);
+        });
     }
 
     public function test_recommendation_effectiveness_returns_zero_when_no_logs_exist(): void

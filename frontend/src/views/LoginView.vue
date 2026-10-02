@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useMenuStore } from '@/stores/menu'
 import AppLogo from '@/components/ui/AppLogo.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import FormField from '@/components/ui/FormField.vue'
@@ -9,11 +10,14 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+const menu = useMenuStore()
 
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
 const isSubmitting = ref(false)
+
+onMounted(() => menu.prefetch())
 
 async function onSubmit() {
   errorMessage.value = ''
@@ -77,6 +81,9 @@ async function onSubmit() {
               Đăng ký ngay
             </RouterLink>
           </p>
+          <RouterLink :to="{ name: 'home' }" class="text-sm text-muted-foreground text-center hover:text-primary hover:underline">
+            Tiếp tục xem menu không cần đăng nhập
+          </RouterLink>
         </form>
       </BaseCard>
     </div>

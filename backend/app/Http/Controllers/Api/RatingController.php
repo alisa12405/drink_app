@@ -18,7 +18,7 @@ class RatingController extends Controller
 
     /**
      * UC-07: Đánh giá món đã uống — chỉ cho phép trên đơn hàng `done` có chứa món đó.
-     * Upsert theo (user_id, order_id, drink_id) — sửa lại đánh giá thay vì tạo dòng mới.
+     * Mỗi món trong một đơn chỉ được đánh giá một lần.
      */
     public function store(StoreRatingRequest $request): RatingResource
     {
@@ -39,10 +39,22 @@ class RatingController extends Controller
             'Món này không có trong đơn hàng đã chọn.',
         );
 
-        $rating = Rating::query()->updateOrCreate(
-            ['user_id' => $user->id, 'order_id' => $order->id, 'drink_id' => $drinkId],
-            $request->only('rating', 'comment'),
+        abort_if(
+            Rating::query()
+                ->where('user_id', $user->id)
+                ->where('order_id', $order->id)
+                ->where('drink_id', $drinkId)
+                ->exists(),
+            422,
+            'Món này đã được đánh giá và không thể chỉnh sửa lại.',
         );
+
+        $rating = Rating::query()->create([
+            'user_id' => $user->id,
+            'order_id' => $order->id,
+            'drink_id' => $drinkId,
+            ...$request->only('rating', 'comment'),
+        ]);
 
         // firstOrCreate() không nạp lại giá trị mặc định DB áp dụng khi tạo mới
         // (sugar_level_default/ice_level_default) — refresh để service tính đúng profile_text.

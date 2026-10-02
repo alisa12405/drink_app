@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
-import { drinksApi } from '@/services/api'
+import { useMenuStore } from '@/stores/menu'
 import AppNavbar from '@/components/layout/AppNavbar.vue'
 import WelcomeBanner from '@/components/menu/WelcomeBanner.vue'
 import RecommendationBanner from '@/components/menu/RecommendationBanner.vue'
@@ -14,18 +15,14 @@ import CartSidebar from '@/components/menu/CartSidebar.vue'
 const router = useRouter()
 const auth = useAuthStore()
 const cart = useCartStore()
-const drinks = ref([])
-const loadError = ref('')
+const menu = useMenuStore()
+const { drinks, isLoading, isRefreshing, loadError } = storeToRefs(menu)
 const activeCategory = ref('all')
+const currentPage = ref(1)
+const menuSection = ref(null)
+const itemsPerPage = 12
 
-onMounted(async () => {
-  try {
-    const { data } = await drinksApi.list()
-    drinks.value = data.data ?? []
-  } catch {
-    loadError.value = 'Không tải được menu. Kiểm tra backend còn chạy không.'
-  }
-})
+onMounted(() => menu.load())
 
 const categories = computed(() => {
   const unique = [...new Set(drinks.value.map((drink) => drink.category))]
@@ -40,13 +37,49 @@ const filteredDrinks = computed(() => {
   return drinks.value.filter((drink) => drink.category === activeCategory.value)
 })
 
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredDrinks.value.length / itemsPerPage)))
+
+const paginatedDrinks = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredDrinks.value.slice(start, start + itemsPerPage)
+})
+
+const pageNumbers = computed(() =>
+  Array.from({ length: totalPages.value }, (_, index) => index + 1),
+)
+
+const visibleRange = computed(() => {
+  if (filteredDrinks.value.length === 0) return { from: 0, to: 0 }
+
+  const from = (currentPage.value - 1) * itemsPerPage + 1
+  return {
+    from,
+    to: Math.min(from + itemsPerPage - 1, filteredDrinks.value.length),
+  }
+})
+
 const categoryLabel = computed(
   () => categories.value.find((cat) => cat.value === activeCategory.value)?.label ?? '',
 )
 
+watch(activeCategory, () => {
+  currentPage.value = 1
+})
+
+watch(totalPages, (pages) => {
+  if (currentPage.value > pages) currentPage.value = pages
+})
+
+function goToPage(page) {
+  if (page < 1 || page > totalPages.value || page === currentPage.value) return
+
+  currentPage.value = page
+  menuSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 async function onLogout() {
   await auth.logout()
-  await router.replace({ name: 'login' })
+  await router.replace({ name: 'home' })
 }
 
 function goToCheckout() {
@@ -58,10 +91,10 @@ function goToCheckout() {
 <template>
   <div class="min-h-screen bg-background">
     <AppNavbar :cart-count="cart.totalQuantity" show-cart @cart-click="goToCheckout">
-      <RouterLink :to="{ name: 'preferences' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+      <RouterLink v-if="auth.isAuthenticated" :to="{ name: 'preferences' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
         Sở thích của tôi
       </RouterLink>
-      <RouterLink :to="{ name: 'order-history' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+      <RouterLink v-if="auth.isAuthenticated" :to="{ name: 'order-history' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
         Lịch sử đơn hàng
       </RouterLink>
       <template v-if="auth.user?.role === 'admin'">
@@ -77,21 +110,36 @@ function goToCheckout() {
       </template>
 
       <template #actions>
-        <div class="hidden md:block text-right leading-tight">
+        <div v-if="auth.isAuthenticated" class="hidden md:block text-right leading-tight">
           <p class="text-xs font-semibold text-foreground">{{ auth.user?.name }}</p>
           <p class="text-[10px] text-muted-foreground uppercase tracking-wide">{{ auth.user?.role }}</p>
         </div>
         <button
+          v-if="auth.isAuthenticated"
           type="button"
           class="text-xs font-semibold text-muted-foreground hover:text-destructive border border-border rounded-lg px-3 py-1.5 transition-colors"
           @click="onLogout"
         >
           Đăng xuất
         </button>
+        <div v-else class="flex items-center gap-2">
+          <RouterLink
+            :to="{ name: 'login' }"
+            class="text-xs font-semibold text-muted-foreground hover:text-primary border border-border rounded-lg px-3 py-1.5 transition-colors"
+          >
+            Đăng nhập
+          </RouterLink>
+          <RouterLink
+            :to="{ name: 'register' }"
+            class="hidden sm:inline-flex text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg px-3 py-1.5 transition-colors"
+          >
+            Đăng ký
+          </RouterLink>
+        </div>
       </template>
     </AppNavbar>
 
-    <div class="max-w-[1400px] mx-auto px-4 md:px-6 py-6 flex flex-col gap-6">
+    <div class="max-w-[1800px] mx-auto px-4 md:px-6 py-6 flex flex-col gap-6">
       <WelcomeBanner :name="auth.user?.name" />
       <RecommendationBanner />
 
@@ -102,16 +150,91 @@ function goToCheckout() {
       <div class="flex flex-col lg:flex-row gap-6">
         <CategorySidebar v-model="activeCategory" :categories="categories" />
 
-        <main class="flex-1 min-w-0">
-          <h2 class="font-heading font-bold text-foreground mb-4">{{ categoryLabel }}</h2>
+        <main ref="menuSection" class="flex-1 min-w-0 scroll-mt-24">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <h2 class="font-heading font-bold text-foreground">{{ categoryLabel }}</h2>
+            <span v-if="isRefreshing" class="text-xs text-muted-foreground" role="status">
+              Đang cập nhật menu…
+            </span>
+          </div>
 
-          <div v-if="filteredDrinks.length === 0" class="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
+          <div
+            v-if="isLoading && drinks.length === 0"
+            class="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-5"
+            aria-label="Đang tải menu"
+          >
+            <div
+              v-for="index in 6"
+              :key="index"
+              class="h-[360px] rounded-2xl border border-border bg-card overflow-hidden animate-pulse"
+            >
+              <div class="h-52 bg-secondary"></div>
+              <div class="p-5 flex flex-col gap-3">
+                <div class="h-4 w-2/3 rounded bg-muted"></div>
+                <div class="h-3 w-full rounded bg-muted"></div>
+                <div class="h-3 w-1/2 rounded bg-muted"></div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="filteredDrinks.length === 0" class="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
             <span class="text-5xl mb-4">🍽️</span>
             <p class="font-medium">Chưa có món nào trong danh mục này</p>
           </div>
 
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <DrinkCard v-for="drink in filteredDrinks" :key="drink.id" :drink="drink" @add="cart.addItem" />
+          <div v-else>
+            <div class="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-5">
+              <DrinkCard v-for="drink in paginatedDrinks" :key="drink.id" :drink="drink" @add="cart.addItem" />
+            </div>
+
+            <nav
+              v-if="totalPages > 1"
+              class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3"
+              aria-label="Phân trang menu"
+            >
+              <p class="text-xs text-muted-foreground">
+                Hiển thị {{ visibleRange.from }}–{{ visibleRange.to }} trên
+                {{ filteredDrinks.length }} món
+              </p>
+
+              <div class="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  class="h-9 px-3 rounded-lg border border-border bg-card text-sm font-medium text-muted-foreground transition hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  :disabled="currentPage === 1"
+                  @click="goToPage(currentPage - 1)"
+                >
+                  Trước
+                </button>
+
+                <button
+                  v-for="page in pageNumbers"
+                  :key="page"
+                  type="button"
+                  class="h-9 min-w-9 px-2 items-center justify-center rounded-lg border text-sm font-semibold transition"
+                  :class="[
+                    Math.abs(page - currentPage) <= 1 ? 'inline-flex' : 'hidden sm:inline-flex',
+                    page === currentPage
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-primary',
+                  ]"
+                  :aria-current="page === currentPage ? 'page' : undefined"
+                  :aria-label="`Trang ${page}`"
+                  @click="goToPage(page)"
+                >
+                  {{ page }}
+                </button>
+
+                <button
+                  type="button"
+                  class="h-9 px-3 rounded-lg border border-border bg-card text-sm font-medium text-muted-foreground transition hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  :disabled="currentPage === totalPages"
+                  @click="goToPage(currentPage + 1)"
+                >
+                  Sau
+                </button>
+              </div>
+            </nav>
           </div>
         </main>
 

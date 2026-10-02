@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Drink\StoreDrinkRequest;
 use App\Http\Requests\Drink\UpdateDrinkRequest;
+use App\Http\Requests\Drink\UploadDrinkImageRequest;
 use App\Http\Resources\DrinkResource;
 use App\Jobs\UpdateDrinkEmbeddingJob;
 use App\Models\Drink;
@@ -12,6 +13,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DrinkController extends Controller
 {
@@ -54,6 +57,30 @@ class DrinkController extends Controller
         return new DrinkResource($drink);
     }
 
+    public function image(Drink $drink): StreamedResponse
+    {
+        abort_if($drink->image_path === null || ! Storage::disk('public')->exists($drink->image_path), 404);
+
+        return Storage::disk('public')->response($drink->image_path);
+    }
+
+    public function uploadImage(UploadDrinkImageRequest $request, Drink $drink): DrinkResource
+    {
+        $previousPath = $drink->image_path;
+        $newPath = $request->file('image')->store('drinks', 'public');
+
+        $drink->update([
+            'image_path' => $newPath,
+            'image_url' => null,
+        ]);
+
+        if ($previousPath !== null && $previousPath !== $newPath) {
+            Storage::disk('public')->delete($previousPath);
+        }
+
+        return new DrinkResource($drink->refresh());
+    }
+
     public function store(StoreDrinkRequest $request): JsonResponse
     {
         $drink = Drink::query()->create($request->validated());
@@ -69,7 +96,7 @@ class DrinkController extends Controller
     {
         $drink->update($request->validated());
 
-        if ($drink->wasChanged(['name', 'ingredients', 'tags'])) {
+        if ($drink->wasChanged(['name', 'description', 'ingredients', 'tags'])) {
             UpdateDrinkEmbeddingJob::dispatch($drink);
         }
 

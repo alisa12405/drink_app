@@ -9,7 +9,8 @@ Lưu đơn hàng của khách — phục vụ UC-05 (đặt đồ uống), UC-06
 | Cột | Kiểu | Null | Default | Ràng buộc | Mô tả |
 |---|---|---|---|---|---|
 | `id` | BIGINT UNSIGNED | NO | AUTO_INCREMENT | PK | Khoá chính |
-| `user_id` | BIGINT UNSIGNED | NO | | FK → `users.id`, INDEX | Chủ đơn hàng |
+| `user_id` | BIGINT UNSIGNED | YES | NULL | FK → `users.id`, INDEX | Chủ đơn đăng nhập; `NULL` với khách vãng lai |
+| `customer_name` | VARCHAR(100) | YES | NULL | | Snapshot tên hiển thị của customer/guest lúc đặt |
 | `status` | ENUM('pending','confirmed','done','cancelled') | NO | `'pending'` | INDEX | Trạng thái đơn hàng |
 | `total_price` | DECIMAL(10,2) | NO | | | Tổng tiền = Σ(`order_items.subtotal`) |
 | `context_snapshot` | JSON | YES | NULL | | Ngữ cảnh lúc đặt: `{hour, weather, temperature, occasion}` |
@@ -26,7 +27,7 @@ Lưu đơn hàng của khách — phục vụ UC-05 (đặt đồ uống), UC-06
 
 | Quan hệ | Bảng liên quan | Loại |
 |---|---|---|
-| `belongsTo` | `users` | N – 1 |
+| `belongsTo` | `users` | N – 0..1 |
 | `hasMany` | `order_items` | 1 – N |
 | `hasMany` | `ratings` | 1 – N |
 
@@ -36,6 +37,7 @@ Lưu đơn hàng của khách — phục vụ UC-05 (đặt đồ uống), UC-06
 - Đơn hàng ở trạng thái `done` **không được sửa món** (không cho thêm/sửa/xoá `order_items`); chỉ được huỷ (`cancelled`) khi còn ở trạng thái **trước** `confirmed` (mục 1.5 SPEC). Cụ thể: huỷ hợp lệ khi `status = 'pending'`; khi đã `confirmed` trở đi thì không tự huỷ được nữa (cần Admin can thiệp qua UC-09 nếu có ngoại lệ).
 - `context_snapshot` được ghi **1 lần duy nhất tại thời điểm tạo đơn** (bước 2 mục 2.4 SPEC), không cập nhật lại sau đó — dùng để phân tích hành vi mua hàng theo ngữ cảnh (VD: thống kê "giờ nào bán chạy nhất", input cho việc đánh giá & cải thiện thuật toán gợi ý sau này — UC-10).
 - `total_price` nên được tính và ghi tại thời điểm tạo đơn (snapshot), không tính lại on-the-fly bằng cách join `order_items` mỗi lần đọc — tránh sai lệch nếu logic tính giá thay đổi trong tương lai.
+- Guest phải gửi `customer_name` dài 2–100 ký tự; đơn có `user_id = NULL`, không xuất hiện trong lịch sử customer và không đủ điều kiện rating. Admin vẫn xem/xử lý đơn bằng `customer_name`.
 
 ## Ghi chú thiết kế
 
@@ -55,4 +57,4 @@ Lưu đơn hàng của khách — phục vụ UC-05 (đặt đồ uống), UC-06
 ```
 
   Trong đó `occasion` là tuỳ chọn do user chọn tay (FR2), `lat`/`lon` là tuỳ chọn nếu cần lưu lại vị trí chính xác lúc đặt. Nếu không xác định được ngữ cảnh (không cấp quyền vị trí — mục 1.5 SPEC), `weather`/`temperature`/`lat`/`lon` có thể là `null`, chỉ còn `hour`.
-- Model tương ứng: `app/Models/Order.php` (hiện là stub trống, cần bổ sung `$fillable`, cast `context_snapshot` sang `array`, cast `status` sang PHP `enum` nếu dùng Laravel 11 native enum casting).
+- Model tương ứng: `app/Models/Order.php` đã có `$fillable`, cast `context_snapshot`, cast `status` sang PHP enum và quan hệ user nullable cho guest.

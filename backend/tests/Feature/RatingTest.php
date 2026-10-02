@@ -73,8 +73,9 @@ class RatingTest extends TestCase
         Bus::assertDispatched(UpdateUserProfileEmbeddingJob::class);
     }
 
-    public function test_rating_same_order_and_drink_twice_updates_instead_of_duplicating(): void
+    public function test_rating_same_order_and_drink_is_locked_after_first_submission(): void
     {
+        Bus::fake();
         $user = User::factory()->create();
         Sanctum::actingAs($user);
         $drink = Drink::factory()->create();
@@ -91,10 +92,11 @@ class RatingTest extends TestCase
             'drink_id' => $drink->id,
             'rating' => 5,
             'comment' => 'Đổi ý, ngon hơn tôi nghĩ',
-        ])->assertOk()->assertJsonPath('data.rating', 5);
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'Món này đã được đánh giá và không thể chỉnh sửa lại.');
 
         $this->assertDatabaseCount('ratings', 1);
-        $this->assertDatabaseHas('ratings', ['rating' => 5, 'comment' => 'Đổi ý, ngon hơn tôi nghĩ']);
+        $this->assertDatabaseHas('ratings', ['rating' => 3, 'comment' => null]);
     }
 
     public function test_cannot_rate_pending_or_confirmed_order(): void

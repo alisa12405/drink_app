@@ -21,6 +21,13 @@ class StoreOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'customer_name' => [
+                Rule::requiredIf(fn (): bool => $this->user() === null),
+                'nullable',
+                'string',
+                'min:2',
+                'max:100',
+            ],
             'items' => ['required', 'array', 'min:1'],
             'items.*.drink_id' => [
                 'required',

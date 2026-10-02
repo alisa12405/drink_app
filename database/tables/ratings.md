@@ -15,7 +15,7 @@ Lưu đánh giá/feedback của user cho món đã uống — phục vụ UC-07.
 | `rating` | TINYINT UNSIGNED | NO | | CHECK (1 ≤ `rating` ≤ 5) | Số sao đánh giá |
 | `comment` | TEXT | YES | NULL | | Bình luận |
 | `created_at` | TIMESTAMP | YES | NULL | | |
-| `updated_at` | TIMESTAMP | YES | NULL | | Cho phép user sửa lại đánh giá |
+| `updated_at` | TIMESTAMP | YES | NULL | | Mốc kỹ thuật của bản ghi; nghiệp vụ hiện khóa đánh giá sau lần gửi đầu |
 
 ## Index & Constraints
 
@@ -37,9 +37,10 @@ Lưu đánh giá/feedback của user cho món đã uống — phục vụ UC-07.
 - Chỉ được đánh giá món **đã thực sự đặt và hoàn thành** — nên validate ở tầng ứng dụng: tồn tại 1 `order_items` với `order_id` + `drink_id` tương ứng, và `orders.status = 'done'`.
 - Mỗi lần có rating mới hoặc rating được sửa: dispatch `UpdateUserProfileEmbeddingJob` để cập nhật lại `user_preferences.profile_text` + `profile_embedding` (vòng lặp feedback — mục 2.5 SPEC).
 - Rating trung bình của 1 món (dùng để hiển thị ở menu, hoặc làm tín hiệu phụ trợ trong pre-filter/re-rank) nên được **tính động** (`AVG(rating) GROUP BY drink_id`) hoặc cache ở Redis, không lưu cột đếm sẵn trong `drinks` để tránh phải đồng bộ 2 nguồn dữ liệu — có thể bổ sung sau nếu cần tối ưu hiệu năng.
+- UC-10 trả về `average_rating` cho từng món bán chạy. Giá trị này là trung bình các dòng `ratings` có `created_at` nằm trong khoảng `from`/`to` đã chọn; món chưa có đánh giá trong khoảng đó trả về `null`.
 
 ## Ghi chú thiết kế
 
 - **Ràng buộc UNIQUE `(user_id, order_id, drink_id)` là bổ sung so với SPEC gốc**, được thêm sau khi xác nhận với người yêu cầu để tránh spam đánh giá trùng lặp cho cùng 1 món trong cùng 1 đơn hàng. Phương án thay thế đã cân nhắc nhưng không chọn: không ràng buộc, cho phép lưu toàn bộ lịch sử đánh giá kể cả trùng lặp.
 - **`updated_at` là bổ sung theo convention Laravel** (SPEC chỉ liệt kê `created_at`) — cần thiết để hỗ trợ tính năng "sửa đánh giá" mà không tạo dòng mới (nhất quán với ràng buộc UNIQUE ở trên).
-- Model tương ứng: `app/Models/Rating.php` (hiện là stub trống, cần bổ sung `$fillable`).
+- Model tương ứng: `app/Models/Rating.php` đã khai báo `$fillable`, casts và quan hệ Eloquent.

@@ -17,12 +17,14 @@ export const useCartStore = defineStore('cart', () => {
     )
     if (existing) {
       existing.quantity += 1
+      existing.image_url = drink.image_url || existing.image_url || null
       return
     }
     items.value.push({
       drink_id: drink.id,
       name: drink.name,
       category: drink.category,
+      image_url: drink.image_url || null,
       price: Number(drink.price),
       quantity: 1,
       sugar_level: '100',

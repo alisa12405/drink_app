@@ -13,7 +13,9 @@ defineProps({
   >
     <div>
       <p class="text-xs uppercase tracking-widest font-semibold opacity-80">Xin chào</p>
-      <h1 class="font-heading font-bold text-2xl md:text-3xl mt-1">{{ name }} 👋</h1>
+      <h1 class="font-heading font-bold text-2xl md:text-3xl mt-1">
+        {{ name ? name : 'Bạn' }} 👋
+      </h1>
       <p class="mt-2 text-sm md:text-base opacity-90">Hôm nay bạn muốn thưởng thức món gì?</p>
     </div>
     <div class="hidden md:block text-6xl shrink-0 opacity-90">🧋</div>

@@ -43,4 +43,4 @@ Lưu hồ sơ sở thích cá nhân hoá của từng user — nền tảng cho 
 - **`created_at` là bổ sung theo convention Laravel** (`$table->timestamps()`); SPEC mục 2.2 chỉ liệt kê `updated_at`. Giữ cả hai để nhất quán với các bảng khác và để biết chính xác thời điểm hồ sơ được tạo lần đầu — không ảnh hưởng đến logic nghiệp vụ.
 - Giá trị `ENUM` cho `sugar_level_default`/`ice_level_default` là **quy ước đề xuất** (không có trong SPEC), lấy theo chuẩn phổ biến của quán trà sữa VN (0/30/50/70/100% đường; không đá/ít đá/đá bình thường/nhiều đá). Có thể đổi tự do khi hiện thực hoá — không ảnh hưởng cấu trúc bảng, chỉ là danh sách giá trị enum.
 - `profile_embedding` dùng kiểu `JSON` (không phải `LONGTEXT`) theo quyết định chung áp dụng cho mọi cột vector trong hệ thống (xem `README.md` mục 5, điểm 4).
-- Model tương ứng: `app/Models/UserPreference.php` (hiện là stub trống, cần bổ sung `$fillable`, cast `taste_tags`/`profile_embedding` sang `array`).
+- Model tương ứng: `app/Models/UserPreference.php` đã khai báo `$fillable`, casts và quan hệ Eloquent.

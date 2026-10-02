@@ -1,5 +1,37 @@
 name: drink-app
 
+x-backend-environment: &backend-environment
+  APP_NAME: ${APP_NAME:-Smart Drink}
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: ${APP_URL:-https://drinks.hmmh.click}
+  LOG_CHANNEL: stderr
+  DB_CONNECTION: ${DB_CONNECTION:-mysql}
+  DB_HOST: ${DB_HOST:-db}
+  DB_PORT: ${DB_PORT:-3306}
+  DB_DATABASE: ${DB_DATABASE:-drink_app}
+  DB_USERNAME: ${DB_USERNAME:-drink_app}
+  DB_PASSWORD: ${DB_PASSWORD:-change_me_secret}
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_CLIENT: phpredis
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+  OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+  OPENAI_EMBEDDING_DIMENSIONS: ${OPENAI_EMBEDDING_DIMENSIONS:-1536}
+  OPENAI_RERANK_MODEL: ${OPENAI_RERANK_MODEL:-gpt-4o-mini}
+  OPENAI_TIMEOUT: ${OPENAI_TIMEOUT:-10}
+  OPENAI_RERANK_TIMEOUT: ${OPENAI_RERANK_TIMEOUT:-15}
+  WEATHER_API_PROVIDER: ${WEATHER_API_PROVIDER:-openweather}
+  WEATHER_API_KEY: ${WEATHER_API_KEY:-}
+  WEATHER_TIMEOUT: ${WEATHER_TIMEOUT:-3}
+  WEATHER_CACHE_TTL: ${WEATHER_CACHE_TTL:-1800}
+  RECOMMENDATION_TIMEZONE: ${RECOMMENDATION_TIMEZONE:-Asia/Ho_Chi_Minh}
+  RECOMMENDATION_RATE_LIMIT_PER_MINUTE: ${RECOMMENDATION_RATE_LIMIT_PER_MINUTE:-5}
+
 services:
   app:
     build:
@@ -8,21 +40,11 @@ services:
     container_name: drink-app-php
     restart: unless-stopped
     working_dir: /var/www/html
+    env_file:
+      - ./backend/.env
+    environment: *backend-environment
     volumes:
-      - ./backend:/var/www/html
-    environment:
-      - APP_NAME=${APP_NAME:-DrinkApp}
-      - APP_URL=http://localhost:${APP_HTTP_PORT:-8080}
-      - DB_CONNECTION=${DB_CONNECTION:-mysql}
-      - DB_HOST=${DB_HOST:-db}
-      - DB_PORT=${DB_PORT:-3306}
-      - DB_DATABASE=${DB_DATABASE:-drink_app}
-      - DB_USERNAME=${DB_USERNAME:-drink_app}
-      - DB_PASSWORD=${DB_PASSWORD:-change_me_secret}
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - WEATHER_API_KEY=${WEATHER_API_KEY:-}
+      - drink-app-storage:/var/www/html/storage
     depends_on:
       db:
         condition: service_healthy
@@ -31,34 +53,79 @@ services:
     networks:
       - drink-app-network
 
-  webserver:
-    image: nginx:1.27-alpine
-    container_name: drink-app-webserver
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: drink-app-queue
     restart: unless-stopped
-    ports:
-      - "${APP_HTTP_PORT:-8080}:80"
+    working_dir: /var/www/html
+    command: ["php", "artisan", "queue:work", "redis", "--queue=embeddings,default", "--sleep=1", "--tries=3", "--timeout=30"]
+    env_file:
+      - ./backend/.env
+    environment:
+      <<: *backend-environment
+      SKIP_APP_BOOTSTRAP: "true"
     volumes:
-      - ./backend:/var/www/html
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - drink-app-storage:/var/www/html/storage
     depends_on:
-      - app
+      webserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "artisan", "queue:monitor", "redis:embeddings", "--max=100"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - drink-app-network
 
-  frontend:
+  webserver:
     build:
       context: .
-      dockerfile: docker/node/Dockerfile
-    container_name: drink-app-frontend
+      dockerfile: docker/nginx/Dockerfile
+    container_name: drink-app-webserver
     restart: unless-stopped
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/api/drinks"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - drink-app-network
+
+  site:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: drink-app-site
+    restart: unless-stopped
+    depends_on:
+      webserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - drink-app-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: drink-app-cloudflared
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
     environment:
-      - VITE_API_BASE_URL=http://localhost:${APP_HTTP_PORT:-8080}/api
-    ports:
-      - "${FRONTEND_PORT:-5174}:5173"
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      site:
+        condition: service_healthy
     networks:
       - drink-app-network
 
@@ -67,12 +134,10 @@ services:
     container_name: drink-app-mysql
     restart: unless-stopped
     environment:
-      - MYSQL_DATABASE=${DB_DATABASE:-drink_app}
-      - MYSQL_USER=${DB_USERNAME:-drink_app}
-      - MYSQL_PASSWORD=${DB_PASSWORD:-change_me_secret}
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-change_me_root_secret}
-    ports:
-      - "${DB_EXTERNAL_PORT:-3306}:3306"
+      MYSQL_DATABASE: ${DB_DATABASE:-drink_app}
+      MYSQL_USER: ${DB_USERNAME:-drink_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me_secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change_me_root_secret}
     volumes:
       - drink-app-db-data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
@@ -89,8 +154,6 @@ services:
     container_name: drink-app-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
     volumes:
       - drink-app-redis-data:/data
     healthcheck:
@@ -101,24 +164,10 @@ services:
     networks:
       - drink-app-network
 
-  phpmyadmin:
-    image: phpmyadmin:5
-    container_name: drink-app-phpmyadmin
-    restart: unless-stopped
-    environment:
-      - PMA_HOST=db
-      - PMA_PORT=3306
-    ports:
-      - "${PHPMYADMIN_PORT:-8081}:80"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - drink-app-network
-
 volumes:
   drink-app-db-data:
   drink-app-redis-data:
+  drink-app-storage:
 
 networks:
   drink-app-network:

@@ -7,7 +7,9 @@ use App\Jobs\UpdateDrinkEmbeddingJob;
 use App\Models\Drink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -82,6 +84,40 @@ class DrinkTest extends TestCase
 
         $this->deleteJson("/api/admin/drinks/{$drink->id}")->assertNoContent();
         $this->assertSoftDeleted($drink);
+    }
+
+    public function test_admin_can_upload_and_replace_a_drink_image(): void
+    {
+        Storage::fake('public');
+        Sanctum::actingAs(User::factory()->admin()->create());
+        $drink = Drink::factory()->create();
+
+        $firstResponse = $this->post("/api/admin/drinks/{$drink->id}/image", [
+            'image' => UploadedFile::fake()->image('first.png', 600, 600),
+        ])->assertOk();
+
+        $firstPath = $drink->refresh()->image_path;
+        Storage::disk('public')->assertExists($firstPath);
+        $firstResponse->assertJsonPath('data.image_url', "/api/drinks/{$drink->id}/image?v={$drink->updated_at->timestamp}");
+        $this->get("/api/drinks/{$drink->id}/image")->assertOk();
+
+        $this->post("/api/admin/drinks/{$drink->id}/image", [
+            'image' => UploadedFile::fake()->image('second.png', 800, 800),
+        ])->assertOk();
+
+        Storage::disk('public')->assertMissing($firstPath);
+        Storage::disk('public')->assertExists($drink->refresh()->image_path);
+    }
+
+    public function test_drink_image_upload_rejects_invalid_files(): void
+    {
+        Storage::fake('public');
+        Sanctum::actingAs(User::factory()->admin()->create());
+        $drink = Drink::factory()->create();
+
+        $this->post("/api/admin/drinks/{$drink->id}/image", [
+            'image' => UploadedFile::fake()->create('unsafe.svg', 20, 'image/svg+xml'),
+        ])->assertUnprocessable()->assertJsonValidationErrors(['image']);
     }
 
     /**
