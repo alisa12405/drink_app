@@ -14,6 +14,8 @@ Internet → Cloudflare Tunnel → site (Vue/Nginx) → webserver → app (Larav
 
 MySQL, Redis, PHP-FPM và Nginx nội bộ không publish cổng ra máy host. Frontend dùng `/api`, nên không còn URL localhost trong production. Source code cũng không bind mount vào container; mỗi lần triển khai sẽ build image bất biến từ code hiện tại.
 
+Nginx backend dùng Laravel làm `default_server` và image đã loại bỏ virtual host `localhost` mặc định của Nginx. Vì frontend chuyển tiếp hostname của request, cấu hình này bảo đảm `/api` vẫn vào Laravel khi dùng domain riêng hoặc preview cục bộ với `localhost`/`127.0.0.1`.
+
 ## Chuẩn bị
 
 1. Sao chép `.env.example` thành `.env`, điền mật khẩu, API key và `CLOUDFLARE_TUNNEL_TOKEN`.

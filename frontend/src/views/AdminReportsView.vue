@@ -1,8 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
 import { BarChart3, Sparkles, Target, TrendingUp } from 'lucide-vue-next'
-import { useAuthStore } from '@/stores/auth'
 import { adminReportsApi } from '@/services/api'
 import { getCategoryEmoji } from '@/constants/drinkOptions'
 import AppNavbar from '@/components/layout/AppNavbar.vue'
@@ -11,8 +9,6 @@ import SectionHeader from '@/components/ui/SectionHeader.vue'
 import FormField from '@/components/ui/FormField.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
-const router = useRouter()
-const auth = useAuthStore()
 
 const fromDate = ref('')
 const toDate = ref('')
@@ -82,54 +78,17 @@ function formatAverageRating(value) {
   return `${Number(value).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ★`
 }
 
-async function onLogout() {
-  await auth.logout()
-  await router.replace({ name: 'login' })
-}
 </script>
 
 <template>
   <div class="min-h-screen bg-background">
-    <AppNavbar :cart-count="0" :show-cart="false">
-      <RouterLink :to="{ name: 'home' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Menu
-      </RouterLink>
-      <RouterLink :to="{ name: 'preferences' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Sở thích của tôi
-      </RouterLink>
-      <RouterLink :to="{ name: 'order-history' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Lịch sử đơn hàng
-      </RouterLink>
-      <RouterLink :to="{ name: 'admin-menu' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Quản lý menu
-      </RouterLink>
-      <RouterLink :to="{ name: 'admin-orders' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Quản lý đơn hàng
-      </RouterLink>
-      <RouterLink :to="{ name: 'admin-reports' }" class="text-sm font-semibold text-primary">
-        Báo cáo
-      </RouterLink>
-
-      <template #actions>
-        <div class="hidden md:block text-right leading-tight">
-          <p class="text-xs font-semibold text-foreground">{{ auth.user?.name }}</p>
-          <p class="text-[10px] text-muted-foreground uppercase tracking-wide">{{ auth.user?.role }}</p>
-        </div>
-        <button
-          type="button"
-          class="text-xs font-semibold text-muted-foreground hover:text-destructive border border-border rounded-lg px-3 py-1.5 transition-colors"
-          @click="onLogout"
-        >
-          Đăng xuất
-        </button>
-      </template>
-    </AppNavbar>
+    <AppNavbar :cart-count="0" :show-cart="false" />
 
     <div class="max-w-[1000px] mx-auto px-4 md:px-6 py-8 flex flex-col gap-6">
       <div>
-        <p class="text-xs font-semibold text-primary uppercase tracking-wide">UC-10 · Admin</p>
+        <p class="text-xs font-semibold text-primary uppercase tracking-wide">Quản trị</p>
         <h1 class="font-heading font-bold text-2xl text-foreground mt-1">Báo cáo thống kê</h1>
-        <p class="text-sm text-muted-foreground mt-1">Theo dõi món bán chạy và hiệu quả gợi ý (UC-04).</p>
+        <p class="text-sm text-muted-foreground mt-1">Theo dõi món bán chạy và hiệu quả gợi ý.</p>
       </div>
 
       <BaseCard padding="sm" class="flex items-end gap-3 flex-wrap">
@@ -187,7 +146,7 @@ async function onLogout() {
       <BaseCard padding="lg" class="flex flex-col gap-4">
         <SectionHeader title="Hiệu quả gợi ý" />
         <p class="text-sm text-muted-foreground -mt-3">
-          Đối chiếu danh sách gợi ý (UC-04) với đơn hàng thực tế của cùng khách hàng trong 24h sau đó.
+          Đối chiếu danh sách gợi ý với đơn hàng thực tế của cùng khách hàng trong 24h sau đó.
         </p>
 
         <p v-if="effectivenessLoading" class="text-sm text-muted-foreground">Đang tải…</p>
@@ -196,7 +155,7 @@ async function onLogout() {
         </p>
         <template v-else>
           <p v-if="effectiveness.total_recommendations === 0" class="text-sm text-muted-foreground">
-            Chưa có dữ liệu gợi ý nào được ghi nhận (tính năng gợi ý — UC-04 — chưa phát sinh log).
+            Chưa có dữ liệu gợi ý nào được ghi nhận.
           </p>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

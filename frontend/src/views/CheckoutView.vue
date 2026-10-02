@@ -7,7 +7,7 @@ import { useCartStore } from '@/stores/cart'
 import { ordersApi } from '@/services/api'
 import { SUGAR_OPTIONS, ICE_OPTIONS, ORDER_TYPE_OPTIONS } from '@/constants/drinkOptions'
 import DrinkThumbnail from '@/components/menu/DrinkThumbnail.vue'
-import AppLogo from '@/components/ui/AppLogo.vue'
+import AppNavbar from '@/components/layout/AppNavbar.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import FormField from '@/components/ui/FormField.vue'
@@ -92,15 +92,13 @@ function goToOrderHistory() {
 
 <template>
   <div class="min-h-screen bg-background flex flex-col">
-    <nav class="bg-card border-b border-border shadow-sm sticky top-0 z-50">
-      <div class="max-w-[1200px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
-        <RouterLink :to="{ name: 'home' }">
-          <AppLogo size="sm" />
-        </RouterLink>
+    <AppNavbar />
+    <div class="bg-card border-b border-border">
+      <div class="max-w-[1200px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-4">
         <p class="hidden sm:block text-sm text-muted-foreground font-medium">Đặt hàng an toàn &amp; đơn giản</p>
         <ProgressSteps :current-step="step === 'confirmed' ? 2 : 1" />
       </div>
-    </nav>
+    </div>
 
     <div v-if="step === 'confirmed'" class="flex-1 flex items-center justify-center px-4 py-16">
       <BaseCard padding="lg" class="max-w-md w-full flex flex-col items-center text-center">

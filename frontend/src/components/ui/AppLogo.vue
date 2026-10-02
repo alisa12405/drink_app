@@ -1,5 +1,9 @@
 <script setup>
 defineProps({
+  compactOnMobile: {
+    type: Boolean,
+    default: false,
+  },
   size: {
     type: String,
     default: 'md', // 'sm' | 'md' | 'lg'
@@ -27,7 +31,7 @@ const nameSizeClass = {
     >
       🧋
     </div>
-    <div>
+    <div :class="compactOnMobile ? 'hidden min-[360px]:block' : ''">
       <span class="font-heading font-bold text-foreground leading-none" :class="nameSizeClass[size]">
         Smart Drink
       </span>

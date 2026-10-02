@@ -1,8 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
 import { ImagePlus, Pencil, Search, Trash2 } from 'lucide-vue-next'
-import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { adminDrinksApi } from '@/services/api'
 import { TEMPERATURE_OPTIONS, getCategoryEmoji } from '@/constants/drinkOptions'
@@ -13,8 +11,6 @@ import FormField from '@/components/ui/FormField.vue'
 import RadioCard from '@/components/ui/RadioCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
-const router = useRouter()
-const auth = useAuthStore()
 const publicMenu = useMenuStore()
 
 const drinks = ref([])
@@ -192,48 +188,11 @@ function temperatureLabel(value) {
   return TEMPERATURE_OPTIONS.find((opt) => opt.value === value)?.label ?? value
 }
 
-async function onLogout() {
-  await auth.logout()
-  await router.replace({ name: 'login' })
-}
 </script>
 
 <template>
   <div class="min-h-screen bg-background">
-    <AppNavbar :cart-count="0" :show-cart="false">
-      <RouterLink :to="{ name: 'home' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Menu
-      </RouterLink>
-      <RouterLink :to="{ name: 'preferences' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Sở thích của tôi
-      </RouterLink>
-      <RouterLink :to="{ name: 'order-history' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Lịch sử đơn hàng
-      </RouterLink>
-      <RouterLink :to="{ name: 'admin-menu' }" class="text-sm font-semibold text-primary">
-        Quản lý menu
-      </RouterLink>
-      <RouterLink :to="{ name: 'admin-orders' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Quản lý đơn hàng
-      </RouterLink>
-      <RouterLink :to="{ name: 'admin-reports' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Báo cáo
-      </RouterLink>
-
-      <template #actions>
-        <div class="hidden md:block text-right leading-tight">
-          <p class="text-xs font-semibold text-foreground">{{ auth.user?.name }}</p>
-          <p class="text-[10px] text-muted-foreground uppercase tracking-wide">{{ auth.user?.role }}</p>
-        </div>
-        <button
-          type="button"
-          class="text-xs font-semibold text-muted-foreground hover:text-destructive border border-border rounded-lg px-3 py-1.5 transition-colors"
-          @click="onLogout"
-        >
-          Đăng xuất
-        </button>
-      </template>
-    </AppNavbar>
+    <AppNavbar :cart-count="0" :show-cart="false" />
 
     <div class="max-w-[1200px] mx-auto px-4 md:px-6 py-8 flex flex-col gap-6">
       <div>
