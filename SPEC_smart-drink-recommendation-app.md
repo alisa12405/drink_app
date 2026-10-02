@@ -7,7 +7,7 @@
 - **Tên đề tài**: Xây dựng ứng dụng đặt đồ uống thông minh hỗ trợ gợi ý món dựa trên sở thích và ngữ cảnh người dùng.
 - **Nhóm**: 4 sinh viên, phân vai Backend / AI-Recommendation / Frontend / DevOps-QA (có thể xoay ca theo sprint).
 - **Loại hệ thống**: Web app đặt đồ uống (dạng quán trà sữa/cafe), có engine gợi ý cá nhân hoá theo sở thích và ngữ cảnh (thời gian, thời tiết, nhiệt độ, lịch sử mua).
-- **Tech stack đã chốt**: Laravel 11 (PHP) backend, MySQL, Redis cache, Vue.js/React frontend, OpenAI API (`text-embedding-3-small` + `gpt-4o-mini`), Docker + Docker Compose, Git/GitHub.
+- **Tech stack đã chốt**: Laravel 13 (PHP 8.3) backend, MySQL 8, Redis 7, Vue 3 frontend, OpenAI API (`text-embedding-3-small` + `gpt-4o-mini`), Docker + Docker Compose, Git/GitHub.
 
 ---
 
@@ -17,6 +17,7 @@
 
 | Actor | Vai trò |
 |---|---|
+| Khách vãng lai (Guest) | Xem menu, xem thời gian/thời tiết và gợi ý chung, quản lý giỏ, đặt đồ uống bằng tên; phải đăng nhập nếu muốn top 5 cá nhân hóa, lịch sử hoặc đánh giá |
 | Khách hàng (Customer) | Đăng ký/đăng nhập, khai báo sở thích, xem menu, nhận gợi ý, đặt đồ uống, đánh giá món |
 | Quản trị viên (Admin) | Quản lý menu (thêm/sửa/xoá món), quản lý đơn hàng, xem báo cáo, quản lý user |
 | Hệ thống gợi ý (Recommendation Engine) | Actor hệ thống — tự động sinh gợi ý dựa trên profile + ngữ cảnh, không do người dùng trực tiếp điều khiển |
@@ -45,6 +46,11 @@
 - FR6: Mọi vector embedding (menu, user profile) phải được cache/lưu trữ, không tính lại nếu dữ liệu nguồn không đổi.
 - FR7: Admin có thể CRUD món uống; mỗi lần thêm/sửa món phải trigger tính lại embedding cho món đó.
 - FR8: Hệ thống phải ghi log mỗi lượt gợi ý (context, danh sách được gợi ý, món user thực sự chọn) để phục vụ đánh giá chất lượng gợi ý sau này.
+- FR11: Hệ thống phải lưu thông báo trong database; Admin nhận thông báo khi có đơn mới, Customer nhận thông báo khi đặt hàng và khi trạng thái đơn thay đổi.
+- FR12: Mỗi user chỉ được gọi gợi ý cá nhân hóa tối đa 5 lần/phút; API trả `429` và thời gian chờ khi vượt giới hạn.
+- FR13: Admin được tải ảnh JPG/PNG/WebP tối đa 5 MB cho món; file được lưu bền và ảnh cũ được dọn khi thay thế.
+- FR9: Khách vãng lai phải xem được menu và tạo đơn bằng tên mà không cần tài khoản; `user_id` của đơn để trống, không cung cấp lịch sử/hủy/rating. Top 5 cá nhân hóa vẫn yêu cầu đăng nhập.
+- FR10: Khi mở menu, hệ thống chỉ hiển thị thời gian, thời tiết (nếu có vị trí) và một gợi ý chung. Chỉ gọi API top 5 sau khi người dùng chủ động bấm; nếu chưa có preference thì hỏi người dùng muốn khai báo trước hay tiếp tục bằng fallback.
 
 ### 1.4. Yêu cầu phi chức năng (Non-Functional Requirements)
 
@@ -56,6 +62,7 @@
 ### 1.5. Quy tắc nghiệp vụ (Business Rules)
 
 - Một user chỉ có một hồ sơ sở thích (`user_preferences`), được cập nhật (không tạo mới) sau mỗi đơn hàng/đánh giá.
+- Mỗi món trong một đơn chỉ được đánh giá một lần; đánh giá đã gửi bị khóa và không cho sửa.
 - Gợi ý chỉ được tính trên các món còn `is_available = true`.
 - Nếu không xác định được ngữ cảnh (ví dụ không cấp quyền vị trí), hệ thống fallback dùng gợi ý dựa trên lịch sử mua + thời gian hệ thống, bỏ qua yếu tố thời tiết.
 - Đơn hàng khi đã ở trạng thái `done` không được sửa món, chỉ có thể huỷ trước khi `confirmed`.
@@ -97,7 +104,7 @@ Nguyên tắc thiết kế: tách riêng **Recommendation module** khỏi Order/
 - id, name, description, ingredients, category, price, calories, temperature_type (hot/cold/both), tags (JSON), image_url, is_available, description_embedding (JSON/LONGTEXT lưu vector), updated_at
 
 **orders**
-- id, user_id (FK), status (pending/confirmed/done/cancelled), total_price, context_snapshot (JSON — lưu lại ngữ cảnh lúc đặt: giờ, nhiệt độ, thời tiết), created_at
+- id, user_id (FK, nullable cho guest), customer_name, status (pending/confirmed/done/cancelled), total_price, context_snapshot (JSON — lưu lại ngữ cảnh lúc đặt: giờ, nhiệt độ, thời tiết), created_at
 
 **order_items**
 - id, order_id (FK), drink_id (FK), quantity, sugar_level, ice_level, note
@@ -121,7 +128,9 @@ Nguyên tắc thiết kế: tách riêng **Recommendation module** khỏi Order/
 | GET | /api/recommendations?lat=&lon= | Trả về danh sách gợi ý kèm giải thích, dựa trên ngữ cảnh hiện tại |
 | POST | /api/orders | Tạo đơn hàng, lưu context_snapshot |
 | GET | /api/orders/history | Lịch sử đơn hàng |
-| POST | /api/ratings | Gửi đánh giá món, trigger cập nhật lại profile_embedding của user |
+| POST | /api/ratings | Gửi đánh giá món một lần, trigger cập nhật lại profile_embedding của user |
+| GET/PATCH | /api/notifications* | Danh sách, đọc một hoặc đọc tất cả thông báo của user hiện tại |
+| POST | /api/admin/drinks/{id}/image | Admin tải ảnh món lên storage |
 
 ### 2.4. Luồng xử lý gợi ý (Recommendation Flow — sequence)
 

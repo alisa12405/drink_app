@@ -43,16 +43,18 @@ export const TEMPERATURE_OPTIONS = [
 ]
 
 export const TASTE_TAG_PRESETS = [
-  { value: 'ngọt', label: 'Ngọt' },
-  { value: 'ít_ngọt', label: 'Ít ngọt' },
-  { value: 'có_caffeine', label: 'Có caffeine' },
-  { value: 'không_caffeine', label: 'Không caffeine' },
-  { value: 'trái_cây', label: 'Trái cây' },
-  { value: 'thanh_mát', label: 'Thanh mát' },
-  { value: 'truyền_thống', label: 'Truyền thống' },
-  { value: 'thơm', label: 'Thơm' },
+  { value: 'sweet', label: 'Ngọt' },
+  { value: 'less_sweet', label: 'Ít ngọt' },
+  { value: 'coffee', label: 'Cà phê' },
+  { value: 'no_milk', label: 'Không sữa' },
+  { value: 'no_added_sugar', label: 'Không thêm đường' },
+  { value: 'fruit_tea', label: 'Trà trái cây' },
+  { value: 'refreshing', label: 'Thanh mát' },
+  { value: 'fresh', label: 'Trái cây tươi' },
   { value: 'matcha', label: 'Matcha' },
-  { value: 'giải_khát', label: 'Giải khát' },
+  { value: 'chocolate', label: 'Chocolate' },
+  { value: 'milky', label: 'Béo sữa' },
+  { value: 'oat_milk', label: 'Sữa yến mạch' },
 ]
 
 export function getTasteTagLabel(tag) {
@@ -64,6 +66,11 @@ const CATEGORY_EMOJI = {
   'trà trái cây': '🍹',
   'cà phê': '☕',
   'nước ép': '🍊',
+  latte: '🥛',
+  'đá xay': '🧊',
+  chocolate: '🍫',
+  'trà kem phô mai': '🧀',
+  'sữa tươi': '🥛',
 }
 
 export function getCategoryEmoji(category) {

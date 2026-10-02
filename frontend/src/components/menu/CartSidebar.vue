@@ -1,6 +1,6 @@
 <script setup>
 import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-vue-next'
-import { getCategoryEmoji } from '@/constants/drinkOptions'
+import DrinkThumbnail from '@/components/menu/DrinkThumbnail.vue'
 
 defineProps({
   cart: {
@@ -31,9 +31,11 @@ defineEmits(['increase', 'decrease', 'remove', 'checkout'])
         </div>
 
         <div v-for="(item, index) in cart" :key="index" class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-lg shrink-0">
-            {{ getCategoryEmoji(item.category) }}
-          </div>
+          <DrinkThumbnail
+            :image-url="item.image_url"
+            :category="item.category"
+            :name="item.name"
+          />
           <div class="flex-1 min-w-0">
             <p class="text-xs font-semibold text-foreground truncate">{{ item.name }}</p>
             <p class="text-xs text-primary font-bold mt-0.5">

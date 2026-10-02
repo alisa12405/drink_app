@@ -193,7 +193,10 @@ async function onLogout() {
           <div class="flex items-start justify-between gap-3 pb-4 border-b border-border">
             <div class="flex flex-col gap-1 min-w-0">
               <span class="font-heading font-bold text-foreground">Đơn #{{ order.id }}</span>
-              <span class="text-xs text-muted-foreground truncate">{{ order.user?.name }} · {{ order.user?.email }}</span>
+              <span class="text-xs text-muted-foreground truncate">
+                <template v-if="order.user">{{ order.user.name }} · {{ order.user.email }}</template>
+                <template v-else>Khách vãng lai · {{ order.customer_name }}</template>
+              </span>
               <span class="text-xs text-muted-foreground">{{ new Date(order.created_at).toLocaleString('vi-VN') }}</span>
             </div>
             <div class="flex flex-col items-end gap-1.5 shrink-0">

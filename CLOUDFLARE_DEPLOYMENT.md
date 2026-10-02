@@ -34,7 +34,6 @@ Trong file `.env` o root project, them/cap nhat:
 
 ```dotenv
 APP_URL=https://drinks.hmmh.click
-SITE_HTTP_PORT=8090
 CLOUDFLARE_TUNNEL_TOKEN=<token-cua-tunnel>
 ```
 
@@ -44,16 +43,16 @@ Dockerfile, anh chup man hinh hay commit.
 ## 3. Build va khoi dong
 
 ```bash
-make deploy-cloudflare
+make deploy
 ```
 
 Neu may khong co `make`:
 
 ```bash
-docker compose --profile cloudflare up -d --build site cloudflared
+docker compose up -d --build --remove-orphans
 ```
 
-Kiem tra local production build tai `http://localhost:8090`, sau do xem trang thai:
+Stack production khong publish cong local. Xem trang thai sau khi build:
 
 ```bash
 docker compose ps
@@ -71,4 +70,5 @@ Khi tunnel bao `Healthy`, truy cap `https://drinks.hmmh.click`.
 - Trang hien nhung API loi: chay `docker compose logs app webserver site` va kiem
   tra `APP_URL=https://drinks.hmmh.click`.
 - Chi de public service `site`; khong tao Published application cho MySQL, Redis
-  hoac phpMyAdmin.
+  hoac backend noi bo.
+- Sau khi sua code, chay lai `make deploy`; production khong bind mount source.

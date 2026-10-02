@@ -18,15 +18,64 @@ class OrderTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_cannot_create_or_view_orders(): void
+    public function test_guest_can_place_order_with_name_but_cannot_view_history(): void
     {
-        $this->postJson('/api/orders', [])->assertUnauthorized();
+        $drink = Drink::factory()->create(['price' => 42000]);
+
+        $this->postJson('/api/orders', [
+            'customer_name' => 'Khách tại quán',
+            'items' => [['drink_id' => $drink->id, 'quantity' => 2]],
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.customer_name', 'Khách tại quán')
+            ->assertJsonPath('data.is_guest', true)
+            ->assertJsonPath('data.total_price', '84000.00');
+
+        $this->assertDatabaseHas('orders', [
+            'user_id' => null,
+            'customer_name' => 'Khách tại quán',
+            'total_price' => 84000,
+        ]);
         $this->getJson('/api/orders/history')->assertUnauthorized();
+    }
+
+    public function test_guest_name_is_required_for_checkout(): void
+    {
+        $drink = Drink::factory()->create();
+
+        $this->postJson('/api/orders', [
+            'items' => [['drink_id' => $drink->id, 'quantity' => 1]],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['customer_name']);
+    }
+
+    public function test_optional_auth_uses_valid_bearer_token(): void
+    {
+        $user = User::factory()->create(['name' => 'Khách có tài khoản']);
+        $drink = Drink::factory()->create();
+        $token = $user->createToken('order-test')->plainTextToken;
+
+        $this->withToken($token)->postJson('/api/orders', [
+            'items' => [['drink_id' => $drink->id, 'quantity' => 1]],
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.customer_name', 'Khách có tài khoản')
+            ->assertJsonPath('data.is_guest', false);
+
+    }
+
+    public function test_optional_auth_rejects_invalid_bearer_token(): void
+    {
+        $drink = Drink::factory()->create();
+
+        $this->withToken('invalid-token')->postJson('/api/orders', [
+            'customer_name' => 'Không được dùng như guest',
+            'items' => [['drink_id' => $drink->id, 'quantity' => 1]],
+        ])->assertUnauthorized();
     }
 
     public function test_user_can_place_order_with_snapshot_pricing_and_default_preferences(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['name' => 'Nguyễn Văn A']);
         UserPreference::query()->create([
             'user_id' => $user->id,
             'sugar_level_default' => SugarLevel::Fifty,
@@ -47,6 +96,8 @@ class OrderTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('data.status', OrderStatus::Pending->value)
+            ->assertJsonPath('data.customer_name', 'Nguyễn Văn A')
+            ->assertJsonPath('data.is_guest', false)
             ->assertJsonPath('data.total_price', '103000.00')
             ->assertJsonCount(2, 'data.items')
             ->assertJsonPath('data.items.0.unit_price', '39000.00')

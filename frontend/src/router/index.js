@@ -29,7 +29,6 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-      meta: { requiresAuth: true },
     },
     {
       path: '/preferences',
@@ -47,7 +46,6 @@ const router = createRouter({
       path: '/checkout',
       name: 'checkout',
       component: CheckoutView,
-      meta: { requiresAuth: true },
     },
     {
       path: '/admin/menu',

@@ -12,10 +12,15 @@ use App\Http\Resources\OrderResource;
 use App\Models\Drink;
 use App\Models\Order;
 use App\Models\User;
+use App\Notifications\NewOrderNotification;
+use App\Notifications\OrderPlacedNotification;
+use App\Notifications\OrderStatusUpdatedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class OrderController extends Controller
 {
@@ -25,11 +30,12 @@ class OrderController extends Controller
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $user = $request->user();
-        $preference = $user->preference;
+        $preference = $user?->preference;
 
         $order = DB::transaction(function () use ($request, $user, $preference) {
             $order = Order::query()->create([
-                'user_id' => $user->id,
+                'user_id' => $user?->id,
+                'customer_name' => $user?->name ?? trim((string) $request->validated('customer_name')),
                 'status' => OrderStatus::Pending,
                 'total_price' => 0,
                 'context_snapshot' => [
@@ -67,6 +73,8 @@ class OrderController extends Controller
 
             return $order;
         });
+
+        $this->notifyOrderCreated($order, $user);
 
         return (new OrderResource($order->load('items.drink')))
             ->response()
@@ -159,6 +167,32 @@ class OrderController extends Controller
 
         $order->update(['status' => $targetStatus]);
 
+        if ($order->user !== null) {
+            try {
+                $order->user->notify(new OrderStatusUpdatedNotification($order, $targetStatus));
+            } catch (\Throwable $exception) {
+                Log::warning('Could not create order status notification.', [
+                    'order_id' => $order->id,
+                    'exception' => $exception::class,
+                ]);
+            }
+        }
+
         return new OrderResource($order->load(['user:id,name,email', 'items.drink']));
+    }
+
+    private function notifyOrderCreated(Order $order, ?User $customer): void
+    {
+        try {
+            $admins = User::query()->where('role', 'admin')->get();
+            Notification::send($admins, new NewOrderNotification($order));
+
+            $customer?->notify(new OrderPlacedNotification($order));
+        } catch (\Throwable $exception) {
+            Log::warning('Could not create order notifications.', [
+                'order_id' => $order->id,
+                'exception' => $exception::class,
+            ]);
+        }
     }
 }

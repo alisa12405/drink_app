@@ -1,6 +1,10 @@
 <script setup>
 import { ShoppingCart } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 import AppLogo from '@/components/ui/AppLogo.vue'
+import NotificationCenter from '@/components/layout/NotificationCenter.vue'
+
+const auth = useAuthStore()
 
 defineProps({
   cartCount: {
@@ -18,7 +22,7 @@ defineEmits(['cart-click'])
 
 <template>
   <nav class="bg-card shadow-sm sticky top-0 z-50 border-b border-border">
-    <div class="max-w-[1400px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
+    <div class="max-w-[1800px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
       <AppLogo size="sm" />
 
       <div class="hidden lg:flex items-center gap-6 flex-1 justify-center flex-wrap">
@@ -26,6 +30,7 @@ defineEmits(['cart-click'])
       </div>
 
       <div class="flex items-center gap-3 shrink-0">
+        <NotificationCenter v-if="auth.isAuthenticated" />
         <slot name="actions" />
 
         <button

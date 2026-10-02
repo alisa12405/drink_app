@@ -26,7 +26,9 @@ class DrinkResource extends JsonResource
             'calories' => $this->calories,
             'temperature_type' => $this->temperature_type->value,
             'tags' => $this->tags,
-            'image_url' => $this->image_url,
+            'image_url' => $this->image_path
+                ? "/api/drinks/{$this->getKey()}/image?v=".($this->updated_at?->timestamp ?? 0)
+                : $this->image_url,
             'is_available' => $this->is_available,
         ];
     }

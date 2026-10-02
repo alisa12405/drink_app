@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // Xem SPEC_smart-drink-recommendation-app.md muc 2.3 (Thiet ke API chinh)
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -43,11 +43,29 @@ export const drinksApi = {
   show: (id) => apiClient.get(`/drinks/${id}`),
 }
 
+export const recommendationsApi = {
+  context: (params) => apiClient.get('/recommendation-context', { params }),
+  list: (params) => apiClient.get('/recommendations', { params }),
+}
+
+export const notificationsApi = {
+  list: () => apiClient.get('/notifications'),
+  markRead: (id) => apiClient.patch(`/notifications/${id}/read`),
+  markAllRead: () => apiClient.patch('/notifications/read-all'),
+}
+
 export const adminDrinksApi = {
   list: (params) => apiClient.get('/admin/drinks', { params }),
   show: (id) => apiClient.get(`/admin/drinks/${id}`),
   create: (payload) => apiClient.post('/admin/drinks', payload),
   update: (id, payload) => apiClient.put(`/admin/drinks/${id}`, payload),
+  uploadImage: (id, image) => {
+    const formData = new FormData()
+    formData.append('image', image)
+    return apiClient.post(`/admin/drinks/${id}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
   remove: (id) => apiClient.delete(`/admin/drinks/${id}`),
 }
 

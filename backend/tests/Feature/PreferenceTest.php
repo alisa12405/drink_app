@@ -67,6 +67,7 @@ class PreferenceTest extends TestCase
 
     public function test_updating_preferences_never_creates_a_second_row(): void
     {
+        Bus::fake();
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
@@ -99,6 +100,7 @@ class PreferenceTest extends TestCase
 
     public function test_profile_text_includes_recent_orders_and_high_ratings(): void
     {
+        Bus::fake();
         $user = User::factory()->create();
         Sanctum::actingAs($user);
         $drink = Drink::factory()->create(['name' => 'Trà đào cam sả']);

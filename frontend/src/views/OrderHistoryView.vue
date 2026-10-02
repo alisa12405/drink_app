@@ -91,10 +91,12 @@ function ratingForm(orderId, drinkId) {
 }
 
 function setStars(orderId, drinkId, value) {
+  if (ratingsByKey[ratingKey(orderId, drinkId)]) return
   ratingForm(orderId, drinkId).rating = value
 }
 
 async function submitRating(orderId, drinkId) {
+  if (ratingsByKey[ratingKey(orderId, drinkId)]) return
   const form = ratingForm(orderId, drinkId)
   if (form.rating < 1) {
     form.error = 'Vui lòng chọn số sao.'
@@ -226,13 +228,21 @@ async function onLogout() {
                     :key="star"
                     type="button"
                     class="transition-colors"
-                    :class="star <= ratingForm(order.id, item.drink_id).rating ? 'text-amber-500' : 'text-muted-foreground/30 hover:text-amber-300'"
+                    :disabled="Boolean(ratingsByKey[ratingKey(order.id, item.drink_id)])"
+                    :class="[
+                      star <= ratingForm(order.id, item.drink_id).rating
+                        ? 'text-amber-500'
+                        : 'text-muted-foreground/30',
+                      ratingsByKey[ratingKey(order.id, item.drink_id)]
+                        ? 'cursor-default'
+                        : 'hover:text-amber-300',
+                    ]"
                     @click="setStars(order.id, item.drink_id, star)"
                   >
                     <Star :size="18" :fill="star <= ratingForm(order.id, item.drink_id).rating ? 'currentColor' : 'none'" />
                   </button>
                   <span v-if="ratingsByKey[ratingKey(order.id, item.drink_id)]" class="ml-2 text-xs font-semibold text-success">
-                    Đã đánh giá
+                    Đã đánh giá · Đã khóa
                   </span>
                 </div>
 
@@ -240,23 +250,23 @@ async function onLogout() {
                   v-model="ratingForm(order.id, item.drink_id).comment"
                   type="text"
                   placeholder="Nhận xét (tuỳ chọn)"
-                  class="text-xs border border-border rounded-lg px-3 py-2 bg-input-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
+                  :disabled="Boolean(ratingsByKey[ratingKey(order.id, item.drink_id)])"
+                  class="text-xs border border-border rounded-lg px-3 py-2 bg-input-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400 disabled:cursor-not-allowed disabled:opacity-70"
                 />
 
                 <BaseButton
+                  v-if="!ratingsByKey[ratingKey(order.id, item.drink_id)]"
                   :full-width="false"
                   variant="secondary"
                   :disabled="ratingForm(order.id, item.drink_id).isSubmitting"
                   @click="submitRating(order.id, item.drink_id)"
                 >
-                  {{
-                    ratingForm(order.id, item.drink_id).isSubmitting
-                      ? 'Đang gửi…'
-                      : ratingsByKey[ratingKey(order.id, item.drink_id)]
-                        ? 'Cập nhật đánh giá'
-                        : 'Gửi đánh giá'
-                  }}
+                  {{ ratingForm(order.id, item.drink_id).isSubmitting ? 'Đang gửi…' : 'Gửi đánh giá' }}
                 </BaseButton>
+
+                <p v-else class="text-xs text-muted-foreground">
+                  Đánh giá đã gửi không thể chỉnh sửa.
+                </p>
 
                 <p v-if="ratingForm(order.id, item.drink_id).error" class="text-xs text-destructive">
                   {{ ratingForm(order.id, item.drink_id).error }}

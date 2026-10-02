@@ -15,7 +15,7 @@ Lưu đánh giá/feedback của user cho món đã uống — phục vụ UC-07.
 | `rating` | TINYINT UNSIGNED | NO | | CHECK (1 ≤ `rating` ≤ 5) | Số sao đánh giá |
 | `comment` | TEXT | YES | NULL | | Bình luận |
 | `created_at` | TIMESTAMP | YES | NULL | | |
-| `updated_at` | TIMESTAMP | YES | NULL | | Cho phép user sửa lại đánh giá |
+| `updated_at` | TIMESTAMP | YES | NULL | | Mốc kỹ thuật của bản ghi; nghiệp vụ hiện khóa đánh giá sau lần gửi đầu |
 
 ## Index & Constraints
 
@@ -43,4 +43,4 @@ Lưu đánh giá/feedback của user cho món đã uống — phục vụ UC-07.
 
 - **Ràng buộc UNIQUE `(user_id, order_id, drink_id)` là bổ sung so với SPEC gốc**, được thêm sau khi xác nhận với người yêu cầu để tránh spam đánh giá trùng lặp cho cùng 1 món trong cùng 1 đơn hàng. Phương án thay thế đã cân nhắc nhưng không chọn: không ràng buộc, cho phép lưu toàn bộ lịch sử đánh giá kể cả trùng lặp.
 - **`updated_at` là bổ sung theo convention Laravel** (SPEC chỉ liệt kê `created_at`) — cần thiết để hỗ trợ tính năng "sửa đánh giá" mà không tạo dòng mới (nhất quán với ràng buộc UNIQUE ở trên).
-- Model tương ứng: `app/Models/Rating.php` (hiện là stub trống, cần bổ sung `$fillable`).
+- Model tương ứng: `app/Models/Rating.php` đã khai báo `$fillable`, casts và quan hệ Eloquent.

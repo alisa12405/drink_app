@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'temperature_type',
     'tags',
     'image_url',
+    'image_path',
     'is_available',
     'description_embedding',
 ])]

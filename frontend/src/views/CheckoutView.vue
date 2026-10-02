@@ -5,7 +5,8 @@ import { CheckCircle2, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { ordersApi } from '@/services/api'
-import { SUGAR_OPTIONS, ICE_OPTIONS, ORDER_TYPE_OPTIONS, getCategoryEmoji } from '@/constants/drinkOptions'
+import { SUGAR_OPTIONS, ICE_OPTIONS, ORDER_TYPE_OPTIONS } from '@/constants/drinkOptions'
+import DrinkThumbnail from '@/components/menu/DrinkThumbnail.vue'
 import AppLogo from '@/components/ui/AppLogo.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -27,6 +28,7 @@ const step = ref('form') // 'form' | 'confirmed'
 const orderType = ref('dine_in')
 const paymentMethod = ref('cash')
 const note = ref('')
+const guestName = ref('')
 const isSubmitting = ref(false)
 const errorMessage = ref('')
 const lastOrder = ref(null)
@@ -48,10 +50,17 @@ watch(
 
 async function confirmOrder() {
   errorMessage.value = ''
+
+  if (!auth.isAuthenticated && guestName.value.trim().length < 2) {
+    errorMessage.value = 'Vui lòng nhập tên khách hàng (ít nhất 2 ký tự).'
+    return
+  }
+
   isSubmitting.value = true
 
   try {
     const { data } = await ordersApi.create({
+      ...(!auth.isAuthenticated ? { customer_name: guestName.value.trim() } : {}),
       items: cart.items.map((item) => ({
         drink_id: item.drink_id,
         quantity: item.quantity,
@@ -110,7 +119,9 @@ function goToOrderHistory() {
         </p>
         <div class="w-full flex flex-col gap-3">
           <BaseButton @click="goHome">Về trang chủ</BaseButton>
-          <BaseButton variant="secondary" @click="goToOrderHistory">Xem lịch sử đơn hàng</BaseButton>
+          <BaseButton v-if="auth.isAuthenticated" variant="secondary" @click="goToOrderHistory">
+            Xem lịch sử đơn hàng
+          </BaseButton>
         </div>
       </BaseCard>
     </div>
@@ -126,9 +137,12 @@ function goToOrderHistory() {
               class="flex flex-col gap-3 pb-4 border-b border-border last:border-0 last:pb-0"
             >
               <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center text-xl shrink-0">
-                  {{ getCategoryEmoji(item.category) }}
-                </div>
+                <DrinkThumbnail
+                  :image-url="item.image_url"
+                  :category="item.category"
+                  :name="item.name"
+                  size="md"
+                />
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-semibold text-foreground truncate">{{ item.name }}</p>
                   <p class="text-sm text-primary font-bold mt-0.5">
@@ -192,9 +206,21 @@ function goToOrderHistory() {
 
         <BaseCard>
           <SectionHeader :number="2" title="Thông tin khách hàng" />
-          <div class="text-sm">
+          <div v-if="auth.isAuthenticated" class="text-sm">
             <p class="font-semibold text-foreground">{{ auth.user?.name }}</p>
             <p class="text-muted-foreground">{{ auth.user?.email }}</p>
+          </div>
+          <div v-else class="flex flex-col gap-3">
+            <FormField
+              v-model="guestName"
+              label="Tên khách hàng"
+              autocomplete="name"
+              placeholder="Nhập tên để quán gọi khi đơn sẵn sàng"
+              required
+            />
+            <p class="text-xs text-muted-foreground">
+              Bạn đang đặt món với tư cách khách vãng lai. Đăng nhập nếu muốn lưu lịch sử và đánh giá món.
+            </p>
           </div>
         </BaseCard>
 
@@ -250,9 +276,11 @@ function goToOrderHistory() {
 
           <div class="px-6 py-4 flex flex-col gap-4 max-h-[280px] overflow-y-auto">
             <div v-for="(item, index) in cart.items" :key="index" class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-lg shrink-0">
-                {{ getCategoryEmoji(item.category) }}
-              </div>
+              <DrinkThumbnail
+                :image-url="item.image_url"
+                :category="item.category"
+                :name="item.name"
+              />
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-foreground truncate">{{ item.name }}</p>
                 <p class="text-xs text-muted-foreground mt-0.5">x{{ item.quantity }}</p>

@@ -1,44 +1,13 @@
-# vue-skeleton
+# Smart Drink frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Ứng dụng Vue 3 được build thành static assets trong image `site`. Trình duyệt gọi API bằng đường dẫn tương đối `/api`, vì vậy giao diện và Laravel dùng chung origin `https://drinks.hmmh.click` và không cần cấu hình CORS hoặc URL localhost.
 
-## Recommended IDE Setup
+Các lệnh kiểm tra cục bộ (khi đã cài Node 22):
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
+```bash
+npm ci --legacy-peer-deps
+npm run lint
 npm run build
 ```
 
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+Trong deployment chính, `docker/frontend/Dockerfile` tự chạy lint và production build. Không có Vite dev server trong `docker-compose.yml`.

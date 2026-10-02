@@ -127,7 +127,7 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 
 | Trang/Component mẫu | Use case liên quan | View Vue hiện có | Việc cần làm |
 |---|---|---|---|
-| Navbar, HeroBanner, TabBar, CategorySidebar, FoodCard, MenuOrderSummary | UC-03 (xem menu), UC-04 (gợi ý), UC-05 (đặt hàng) | ✅ `HomeView.vue` đã dựng lại theo mẫu (Bước 2), dùng `AppNavbar`, `WelcomeBanner`, `RecommendationBanner`, `CategorySidebar`, `DrinkCard`, `CartSidebar` | Đã xong phần menu + giỏ hàng. Còn thiếu: nội dung gợi ý thật cho `RecommendationBanner` khi UC-04 có backend. |
+| Navbar, HeroBanner, TabBar, CategorySidebar, FoodCard, MenuOrderSummary | UC-03 (xem menu), UC-04 (gợi ý), UC-05 (đặt hàng) | ✅ `HomeView.vue` dùng `AppNavbar`, `WelcomeBanner`, `RecommendationBanner`, `CategorySidebar`, `DrinkCard`, `CartSidebar` | Public menu + giỏ; banner ban đầu chỉ có giờ/thời tiết/gợi ý chung, top 5 + lý do tải khi bấm và yêu cầu đăng nhập. |
 | ProgressSteps, SectionHeader, FormField, radio-card, Order Summary | UC-05 (đặt đồ uống, thanh toán giả lập) | ✅ `CheckoutView.vue` (route `/checkout`, Bước 3) — dùng `ProgressSteps`, `SectionHeader`, `FormField`, `RadioCard`, panel "Đơn hàng của bạn" | Đã xong. Giỏ hàng dùng chung qua Pinia store `stores/cart.js` giữa `HomeView` và `CheckoutView`. |
 | ConfirmationPage | Kết thúc UC-05 | ✅ Đã làm — là trạng thái `step === 'confirmed'` ngay trong `CheckoutView.vue` (không tách route riêng, giống cách template gốc chuyển trạng thái trong cùng 1 luồng) | Đã xong (gộp vào Bước 3). |
 | — (không có mẫu tương ứng) | UC-01 Đăng ký/đăng nhập | `LoginView.vue` | Không có trong template — thiết kế theo cùng bộ token màu/fonts (card trắng bo góc, nút cam, input rounded-xl) để đồng bộ. |
@@ -160,41 +160,43 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 
 - [x] **Bước 2 — Trang chủ / Menu (UC-03, UC-04)** ✅ Đã hoàn thành
   - Dựng lại `frontend/src/views/HomeView.vue` theo layout 4.1: `AppNavbar` (dùng lại từ Bước 0/1) + `WelcomeBanner` (hero rút gọn, không dùng ảnh nền thật để tránh phụ thuộc mạng ngoài — dùng gradient `primary`→`primary-hover` + emoji 🧋) + `CategorySidebar` + lưới `DrinkCard` + `CartSidebar` cố định bên phải (`lg:sticky`).
-  - Đã thêm `RecommendationBanner` (khối "Gợi ý cho bạn", viền nét đứt, icon `Sparkles`) phía trên lưới món — hiển thị trạng thái "chờ hoàn thiện UC-04" thay vì gợi ý thật, đúng theo kế hoạch.
+  - `RecommendationBanner` tải public `GET /api/recommendation-context` để hiện đồng hồ, thời tiết và một câu gợi ý chung; không tự gọi LLM khi mở trang. Nút “Nhận gợi ý của bạn” mới gọi `GET /api/recommendations`, hiển thị đoạn “Vì sao chọn các món này?”, top 5 và lý do riêng từng món. Guest nhận popup đăng nhập; customer chưa có preference nhận popup chọn khai báo trước hoặc dùng fallback.
   - **Component mới tạo**:
-    - `frontend/src/components/layout/AppNavbar.vue` — navbar dùng chung cho các trang đã đăng nhập (logo, slot nav-link giữa, slot actions bên phải, icon giỏ hàng có badge + emit `cart-click`), sẽ tái dùng ở Bước 5-9.
+    - `frontend/src/components/layout/AppNavbar.vue` — navbar rộng tối đa 1800px đồng bộ phần nội dung, có logo, nav-link, actions, chuông thông báo và icon giỏ hàng. `NotificationCenter.vue` mở panel từ header, poll 10 giây và hiển thị toast trượt vào ở góc dưới khi có thông báo mới.
     - `frontend/src/components/menu/CategorySidebar.vue` — danh sách danh mục (v-model), danh mục lấy động từ dữ liệu `drinks` trả về (không hardcode), kèm emoji theo danh mục.
-    - `frontend/src/components/menu/DrinkCard.vue` — thẻ món: ảnh nếu có `image_url`, nếu không thì hiển thị emoji theo danh mục (dữ liệu seed hiện chưa có ảnh); badge "Phổ biến" nếu `tags` chứa `best_seller`; nút thêm vào giỏ.
+    - `frontend/src/components/menu/DrinkCard.vue` — thẻ món cỡ lớn theo lưới responsive 2–3 cột: khung ảnh cao 176–208px và dùng `object-contain` để hiển thị trọn sản phẩm, không crop/zoom; nếu không có `image_url` thì hiển thị emoji theo danh mục; badge "Phổ biến" nếu `tags` chứa `best_seller`; nút thêm vào giỏ.
     - `frontend/src/components/menu/CartSidebar.vue` — panel giỏ hàng đầy đủ chức năng cũ (tăng/giảm số lượng, xoá, chọn đường/đá theo `SUGAR_OPTIONS`/`ICE_OPTIONS`, ghi chú, trường "dịp", tổng tiền, nút đặt hàng, thông báo lỗi/thành công) — chuyển từ code inline trong `HomeView.vue` cũ sang component riêng, `HomeView.vue` chỉ giữ state + logic gọi API. *(Đã đơn giản hoá thêm ở Bước 3, xem bên dưới.)*
-    - `frontend/src/components/menu/WelcomeBanner.vue`, `RecommendationBanner.vue` — hai khối tĩnh mô tả ở trên.
+    - `frontend/src/components/menu/WelcomeBanner.vue` — hero hỗ trợ cả tên user và lời chào guest; `RecommendationBanner.vue` — context public + recommendation theo yêu cầu + popup xác thực/sở thích.
   - Thêm helper `getCategoryEmoji()` vào `frontend/src/constants/drinkOptions.js` để map danh mục (trà sữa/trà trái cây/cà phê/nước ép...) sang emoji dùng chung cho `CategorySidebar`, `DrinkCard`, `CartSidebar`.
+  - Khung nội dung menu mở rộng tối đa 1800px để tận dụng khoảng trống hai bên; màn rộng dùng lưới 3 cột và phân trang 12 món/trang (4 hàng), màn nhỏ hơn tự hạ còn 2/1 cột. Đổi danh mục tự về trang 1 và chuyển trang sẽ cuộn về đầu lưới.
+  - Thẻ món nâng nhẹ lên khi rê chuột (`translateY(-0.25rem)`), tăng bóng và đổi màu viền; hiệu ứng tắt dịch chuyển khi người dùng bật chế độ giảm chuyển động.
   - Giữ nguyên toàn bộ logic nghiệp vụ đã có (thêm giỏ, đổi số lượng, chọn đường/đá, đặt hàng qua `ordersApi.create`) — chỉ tách UI ra component và áp token màu/spacing mới, không đổi hành vi.
   - Đã kiểm tra: dev server Vite biên dịch không lỗi, không có lỗi linter, tất cả view/component mới trả HTTP 200 qua dev server, API `GET /api/drinks` vẫn trả dữ liệu bình thường cho trang menu.
 
 - [x] **Bước 3 — Giỏ hàng & Checkout (UC-05)** ✅ Đã hoàn thành (gộp luôn Bước 4)
   - **Kiến trúc**: state giỏ hàng nằm trong **Pinia store `frontend/src/stores/cart.js`** (`useCartStore`: `items`, `occasion`, `totalQuantity`/`totalPrice`, action `addItem/increase/decrease/remove/clear`) để chia sẻ giữa trang Menu và trang Checkout qua điều hướng route.
   - **Trang Menu (`HomeView.vue`)**: `CartSidebar.vue` chỉ hiển thị **danh sách món rút gọn** (emoji, tên, thành tiền, tăng/giảm số lượng, xoá) + dòng gợi ý "chọn đường/đá và ghi chú ở bước Giỏ hàng & Thanh toán tiếp theo". Nút "Tiến hành đặt hàng" chỉ emit `checkout` để điều hướng sang `/checkout` (không đặt hàng trực tiếp tại đây).
-  - **Trang `frontend/src/views/CheckoutView.vue`** (route `/checkout`, `requiresAuth`) — gồm 2 trạng thái nội bộ (`step: 'form' | 'confirmed'`):
+  - **Trang `frontend/src/views/CheckoutView.vue`** (route public `/checkout`, yêu cầu giỏ không rỗng) — gồm 2 trạng thái nội bộ (`step: 'form' | 'confirmed'`):
     - Trạng thái `form`: navbar rút gọn + `ProgressSteps` (Giỏ hàng → Thanh toán → Hoàn tất), 5 khối `SectionHeader` đánh số:
       1. **Món đã chọn** — mỗi món: ảnh/emoji, tên, thành tiền, tăng/giảm số lượng, xoá, chọn đường/đá (`SUGAR_OPTIONS`/`ICE_OPTIONS`), ô ghi chú riêng — thao tác trực tiếp trên `cart.items` qua `useCartStore`.
-      2. **Thông tin khách hàng** — hiển thị tên/email user đã đăng nhập.
+      2. **Thông tin khách hàng** — customer hiển thị tên/email; guest nhập tên 2–100 ký tự và được thông báo đơn không có lịch sử/rating.
       3. **Hình thức nhận đồ** — `RadioCard` chọn Dùng tại quán/Mang đi (`ORDER_TYPE_OPTIONS` trong `constants/drinkOptions.js`); gửi riêng qua trường `order_type` (`dine_in`/`takeaway`, enum `App\Enums\OrderType`) lên `POST /api/orders`, lưu vào khoá `context_snapshot.order_type` (không cần migration vì cột `context_snapshot` là JSON).
       4. **Ghi chú thêm** — `FormField` nhập dịp/ghi chú tự do, gửi qua trường `occasion` (chỉ còn đúng nghĩa ghi chú, không gộp chung với hình thức nhận đồ nữa).
       5. **Phương thức thanh toán (giả lập)** — `RadioCard` Tiền mặt/QR, chỉ hiển thị minh hoạ, không gửi backend (chưa có cột `payment_method`).
       Panel "Đơn hàng của bạn" bên phải (sticky khi cuộn, xem phần Layout & sticky bên dưới) có nút "Xác nhận đặt hàng" gọi `ordersApi.create`.
-    - Trạng thái `confirmed`: khối xác nhận theo mẫu `ConfirmationPage` (icon ✅, mã đơn, tổng tiền, nút "Về trang chủ" / "Xem lịch sử đơn hàng").
+    - Trạng thái `confirmed`: khối xác nhận theo mẫu `ConfirmationPage`; nút lịch sử chỉ hiện với tài khoản đăng nhập.
     - Guard: tự động điều hướng về trang chủ nếu vào `/checkout` khi giỏ hàng rỗng, hoặc nếu người dùng xoá hết món ngay tại trang này (qua `watch` trên `cart.items.length`).
   - **Component dùng chung** tại `frontend/src/components/ui/`: `ProgressSteps.vue`, `RadioCard.vue`.
   - **Layout & sticky cart khi cuộn trang**: cả `CartSidebar.vue` (trang Menu) và panel "Đơn hàng của bạn" (`CheckoutView.vue`) dùng `position: sticky` để card trôi theo khi cuộn. **Lưu ý kỹ thuật quan trọng**: container flex cha (bọc main content + sidebar) **không được đặt `align-items: flex-start`/`self-start`** trên `<aside>` chứa phần tử sticky — nếu đặt, `<aside>` sẽ chỉ cao bằng đúng nội dung của nó, không có "khoảng trống" để phần tử sticky bên trong trôi theo khi cuộn (containing block của sticky chính là `<aside>`, sticky chỉ trôi được trong phạm vi chiều cao của containing block). Cách đúng: để flex container dùng `align-items: stretch` mặc định (không set align-items), giúp `<aside>` giãn theo chiều cao cột nội dung chính; phần tử sticky thật sự (div bên trong `<aside>`) vẫn giữ kích thước tự nhiên và có đủ khoảng trống để trôi. Áp dụng: trang Menu kích hoạt sticky từ `lg:` (≥1024px, do có 3 cột: danh mục + lưới món + giỏ hàng cần nhiều chỗ), trang Checkout kích hoạt từ `md:` (≥768px, chỉ 2 cột nên đủ chỗ ở màn hình nhỏ hơn).
   - **Hiển thị hình thức nhận đồ cho admin/khách**: badge (🏠 Dùng tại quán / 🥤 Mang đi) từ `context_snapshot.order_type` qua helper `getOrderTypeInfo()` (`constants/drinkOptions.js`), hiển thị ở `AdminOrdersView.vue` (UC-09, cạnh badge trạng thái đơn, kèm ghi chú `occasion` nếu có) và `OrderHistoryView.vue` (lịch sử đơn của khách).
-  - Thêm route `checkout` vào `frontend/src/router/index.js` (`meta: { requiresAuth: true }`).
+  - Route `home` và `checkout` là public; các route preference/history/admin vẫn giữ guard. Checkout tự quay về home khi giỏ rỗng.
   - Test: `OrderTest.php` có test riêng cho `order_type` (lưu đúng vào `context_snapshot`, validate enum từ chối giá trị lạ) — full suite `OrderTest`/`AdminOrderTest` 17/17 pass. Đã build thử frontend + grep CSS biên dịch để xác nhận các class `sticky`/`top-24` ở đúng breakpoint mong muốn, không bị purge.
 
 > Ghi chú đánh số: Bước 4 gốc ("Xác nhận đơn hàng") đã được gộp vào Bước 3 ở trên (làm luôn Confirmation cùng lúc với Checkout). Các bước còn lại được đánh số lại liền mạch từ đây.
 
 - [x] **Bước 4 — Lịch sử đơn hàng & Đánh giá (UC-06, UC-07)** ✅ Đã hoàn thành
   - Viết lại `frontend/src/views/OrderHistoryView.vue` từ CSS thuần (scoped style thủ công) sang Tailwind + bộ component dùng chung: `AppNavbar` (đồng bộ điều hướng với `HomeView`, có link Menu/Sở thích/Lịch sử đơn hàng + link Admin nếu là admin), `BaseCard` cho từng đơn hàng, `BaseButton` cho nút "Đặt đồ ngay"/"Gửi đánh giá"/"Huỷ đơn". **Giữ nguyên 100% logic nghiệp vụ cũ** (`loadOrders`, `cancelOrder`, `ratingForm`/`setStars`/`submitRating`) — chỉ thay lớp UI.
-  - Mỗi đơn hàng hiển thị: mã đơn + hình thức nhận đồ (badge, dùng lại `getOrderTypeInfo()`) + thời gian, badge trạng thái đổi màu theo `ORDER_STATUS_BADGE_CLASSES` (map mới trong `constants/drinkOptions.js`: pending=vàng nhạt, confirmed=xanh dương, done=xanh lá (`success`), cancelled=đỏ (`destructive`)); danh sách món có emoji theo category, đường/đá, thành tiền; nếu đơn `done` thì hiện khối đánh giá (sao bằng icon `Star` từ `lucide-vue-next`, tô màu `amber-500` khi được chọn, thay cho ký tự `★` cũ) + ô nhận xét + nút gửi/cập nhật đánh giá; chân đơn hiển thị tổng tiền + nút "Huỷ đơn" nếu đang `pending`.
+  - Mỗi đơn hàng hiển thị: mã đơn + hình thức nhận đồ, thời gian và badge trạng thái; đơn `done` cho gửi đánh giá một lần. Sau khi gửi, sao/nhận xét/nút gửi bị khóa và UI ghi rõ đánh giá không thể chỉnh sửa; chân đơn có tổng tiền và nút hủy khi còn `pending`.
   - Trạng thái rỗng (chưa có đơn nào) dùng icon `PackageOpen` + nút "Đặt đồ ngay" điều hướng về Menu, đồng bộ phong cách với trạng thái rỗng của `CartSidebar.vue`.
   - **Mở rộng component dùng chung**: thêm variant `danger` và prop `fullWidth` (mặc định `true`, giữ nguyên hành vi cũ) vào `BaseButton.vue` — cần thiết cho nút "Huỷ đơn" (màu đỏ, không chiếm full width vì nằm cạnh dòng tổng tiền); các bước Admin sau (6/7) có thể tái dùng.
   - **Backend**: thêm field `drink_category` vào `OrderItemResource.php` (lấy từ quan hệ `drink` đã `whenLoaded`) để frontend hiển thị đúng emoji theo danh mục món trong lịch sử đơn — không đổi hành vi API cũ, chỉ thêm field mới.
@@ -202,7 +204,7 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 
 - [x] **Bước 5 — Trang Sở thích cá nhân (UC-02)** ✅ Đã hoàn thành
   - Viết lại `frontend/src/views/PreferenceView.vue` từ CSS thuần sang Tailwind + bộ component dùng chung: `AppNavbar` (đồng bộ điều hướng, highlight "Sở thích của tôi"), `BaseCard` + `SectionHeader` chia 3 khối đánh số (1. Sở thích vị giác, 2. Mức đường & đá mặc định, 3. Ghi chú dị ứng), `BaseButton` cho nút lưu. **Giữ nguyên logic gọi API cũ** (`preferencesApi.show/update`), chỉ đổi cách người dùng nhập liệu (xem bên dưới) và lớp UI.
-  - **Sở thích vị giác đổi từ input text tự do (phân tách bằng dấu phẩy) sang chip chọn nhanh** (tham khảo pattern `Badge` trong `template_frontend`): danh sách preset `TASTE_TAG_PRESETS` (constants/drinkOptions.js — lấy từ vocabulary tag đã dùng trong `DrinkSeeder`: ngọt/ít_ngọt/có_caffeine/không_caffeine/trái_cây/thanh_mát/truyền_thống/thơm/matcha/giải_khát), bấm để bật/tắt; vẫn cho phép thêm tag tuỳ ý ngoài preset qua ô nhập + nút "Thêm" (hiển thị dạng chip có nút xoá `X`). Dữ liệu gửi lên backend vẫn là mảng string y hệt format cũ (`taste_tags`), không đổi API.
+  - **Sở thích vị giác đổi từ input text tự do (phân tách bằng dấu phẩy) sang chip chọn nhanh** (tham khảo pattern `Badge` trong `template_frontend`): danh sách preset `TASTE_TAG_PRESETS` (constants/drinkOptions.js — đồng bộ với vocabulary tag của danh mục 50 món: `sweet`, `less_sweet`, `coffee`, `no_milk`, `no_added_sugar`, `fruit_tea`, `refreshing`, `fresh`, `matcha`, `chocolate`, `milky`, `oat_milk`), bấm để bật/tắt; vẫn cho phép thêm tag tuỳ ý ngoài preset qua ô nhập + nút "Thêm" (hiển thị dạng chip có nút xoá `X`). Dữ liệu gửi lên backend vẫn là mảng string y hệt format cũ (`taste_tags`), không đổi API.
   - **Mức đường/đá mặc định đổi từ `<select>` sang `RadioCard`** (component đã có từ Bước 3), hiển thị dạng lưới thẻ bo viền thay vì dropdown.
   - **Ghi chú dị ứng**: mở rộng `FormField.vue` thêm prop `multiline`/`rows` để render `<textarea>` thay vì `<input>` khi cần (dùng chung được cho các trường nhiều dòng khác sau này), không ảnh hưởng các chỗ đang dùng `FormField` dạng input thường.
   - Khối "Hồ sơ tổng hợp dùng để gợi ý" (`profile_text` trả về từ backend) giữ nguyên vị trí cuối trang, style lại thành card nền `muted` viền nét đứt + icon `Sparkles`, làm rõ đây là dữ liệu suy ra tự động (không phải form nhập).
@@ -210,6 +212,7 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 
 - [x] **Bước 6 — Admin: Quản lý menu (UC-08)** ✅ Đã hoàn thành
   - Viết lại `frontend/src/views/AdminMenuView.vue` từ CSS thuần sang Tailwind + bộ component dùng chung: `AppNavbar` (đồng bộ điều hướng, highlight "Quản lý menu", đủ link Menu/Sở thích/Lịch sử/3 mục Admin), `BaseCard` cho panel danh sách + panel form, `SectionHeader` cho tiêu đề form, `FormField` cho các trường nhập liệu, `RadioCard` cho chọn nhiệt độ phục vụ (`TEMPERATURE_OPTIONS`, có icon 🔥/🧊/🔥🧊), `BaseButton` cho toàn bộ nút bấm (variant `secondary`/`ghost`/`danger`). **Giữ nguyên 100% logic nghiệp vụ cũ** (`loadDrinks`, `editDrink`, `onSubmit`, `toggleAvailability`, `deleteDrink`) và toàn bộ payload/validate khớp `StoreDrinkRequest`/`UpdateDrinkRequest` backend — chỉ thay lớp UI.
+  - Giao diện thực tế không hiển thị mã “UC-08 · Admin”. Form cho chọn ảnh từ máy, xem trước, kiểm tra JPG/PNG/WebP tối đa 5 MB và tải qua endpoint riêng sau khi lưu món.
   - Layout 2 cột `grid lg:grid-cols-[1.3fr_1fr]`: panel trái là danh sách món dạng thẻ (emoji theo category qua `getCategoryEmoji()`, tên, danh mục/giá/nhiệt độ, tags, badge Đang bán/Ngừng bán màu `success`/`destructive`), có ô tìm kiếm lọc theo danh mục (icon `Search`) + nút Lọc; mỗi thẻ có 3 nút thao tác Sửa/Ngừng bán/Xoá. Panel phải là form thêm/sửa món, đổi tiêu đề động theo trạng thái đang sửa, có nút "Huỷ sửa" khi đang ở chế độ sửa.
   - Thẻ món đang được chọn để sửa được highlight bằng viền `border-primary` + nền `bg-secondary/40`, đồng bộ pattern highlight active dùng ở `CategorySidebar.vue`.
   - Đã kiểm tra: build frontend production không lỗi, không có lỗi linter, route `/admin/menu` trả HTTP 200 qua dev server.
@@ -230,6 +233,14 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 > Toàn bộ 9 trang trong kế hoạch (Bước 0-8) đã hoàn thành việc áp dụng thiết kế Tailwind + bộ component dùng chung đồng bộ token màu/spacing/typography theo mục 2.
 
 ---
+
+### 6.1 Tối ưu trải nghiệm tải menu và đồng bộ ảnh giỏ hàng
+
+- `stores/menu.js` lưu danh sách món vào Pinia và `localStorage` trong 5 phút theo mô hình stale-while-revalidate: dữ liệu đã có được hiển thị ngay, còn request cập nhật chạy nền và được gộp nếu nhiều view cùng gọi.
+- `LoginView.vue` và `RegisterView.vue` tải trước menu công khai. Khi xác thực xong, `HomeView.vue` thường có thể hiển thị món ngay; lần truy cập đầu chưa có cache dùng skeleton thay vì màn hình trống.
+- Các thao tác thêm/sửa/ẩn/xoá món trong `AdminMenuView.vue` chủ động làm mới cache menu công khai để tránh hiển thị dữ liệu cũ.
+- `DrinkThumbnail.vue` dùng chung `image_url` của thẻ món cho giỏ hàng tại Menu và Checkout; chỉ quay về emoji danh mục nếu món không có ảnh hoặc ảnh tải lỗi.
+- Nginx production cache `/images/` trong 7 ngày; asset có hash vẫn cache bất biến 1 năm như trước.
 
 ## 7. Lưu ý khi chuyển đổi React → Vue
 

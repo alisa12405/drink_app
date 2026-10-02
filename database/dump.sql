@@ -1,11 +1,12 @@
 -- Smart Drink sample data for MySQL 8
 --
--- Prerequisite: run Laravel migrations before importing this file.
+-- Prerequisite: run Laravel migrations and MissingDrinkSeeder before importing this file.
 -- Import into the database selected by backend/.env (normally `drink_app`):
+--   docker compose exec app php artisan db:seed --class='Database\Seeders\MissingDrinkSeeder' --force
 --   docker compose exec -T db sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' < database/dump.sql
 --
--- This is a data-only, repeatable fixture. It does not create, drop, or truncate tables.
--- Re-importing upserts only the named test accounts and their preference; it adds the other demo records only if absent.
+-- The 50-item menu is maintained by backend/database/data/drinks_menu.csv and the seeders.
+-- This data-only, repeatable fixture adds demo accounts, orders, rating and recommendation log.
 --
 -- Test accounts (the backslash in the task request is treated as an escape character):
 --   admin@smartdrink.com  / admin@3618  (admin)
@@ -68,7 +69,7 @@ INSERT INTO `user_preferences` (
     '50',
     'less_ice',
     'Không dùng đậu phộng.',
-    'Sở thích: trái_cây, ít_ngọt, có_caffeine. Mặc định: 50% đường, ít đá. Dị ứng: Không dùng đậu phộng. Từng đặt: [Demo] Trà đào cam sả, [Demo] Cà phê sữa đá. Đánh giá cao: [Demo] Trà đào cam sả (5 sao).',
+    'Sở thích: fruit_tea, less_sweet, coffee. Mặc định: 50% đường, ít đá. Dị ứng: Không dùng đậu phộng. Từng đặt: Trà đào cam sả, Cà phê sữa đá. Đánh giá cao: Trà đào cam sả (5 sao).',
     NULL,
     '2026-08-20 08:15:00',
     '2026-08-30 08:45:00'
@@ -81,88 +82,21 @@ INSERT INTO `user_preferences` (
     `profile_embedding` = NULL,
     `updated_at` = VALUES(`updated_at`);
 
--- The [Demo] prefix keeps this fixture distinct from the normal DrinkSeeder menu.
-INSERT INTO `drinks` (
-    `name`, `description`, `ingredients`, `category`, `price`, `calories`, `temperature_type`,
-    `tags`, `image_url`, `is_available`, `description_embedding`, `created_at`, `updated_at`, `deleted_at`
-)
-SELECT
-    '[Demo] Trà đào cam sả',
-    'Trà đen ủ lạnh với đào, cam tươi và sả; vị thanh mát cho ngày nóng.',
-    'Trà đen, đào ngâm, cam tươi, sả, đường',
-    'trà trái cây',
-    45000.00,
-    180,
-    'cold',
-    JSON_ARRAY('best_seller', 'trái_cây', 'giải_khát'),
-    NULL,
-    TRUE,
-    NULL,
-    '2026-08-15 09:00:00',
-    '2026-08-15 09:00:00',
-    NULL
-WHERE NOT EXISTS (
-    SELECT 1 FROM `drinks` WHERE `name` = '[Demo] Trà đào cam sả' AND `deleted_at` IS NULL
-);
 SET @peach_tea_id = (
     SELECT `id` FROM `drinks`
-    WHERE `name` = '[Demo] Trà đào cam sả' AND `deleted_at` IS NULL
+    WHERE `name` = 'Trà đào cam sả' AND `deleted_at` IS NULL
     ORDER BY `id` ASC LIMIT 1
 );
 
-INSERT INTO `drinks` (
-    `name`, `description`, `ingredients`, `category`, `price`, `calories`, `temperature_type`,
-    `tags`, `image_url`, `is_available`, `description_embedding`, `created_at`, `updated_at`, `deleted_at`
-)
-SELECT
-    '[Demo] Cà phê sữa đá',
-    'Cà phê phin Việt Nam kết hợp sữa đặc và đá.',
-    'Cà phê, sữa đặc, đá',
-    'cà phê',
-    35000.00,
-    180,
-    'cold',
-    JSON_ARRAY('có_caffeine', 'truyền_thống'),
-    NULL,
-    TRUE,
-    NULL,
-    '2026-08-15 09:05:00',
-    '2026-08-15 09:05:00',
-    NULL
-WHERE NOT EXISTS (
-    SELECT 1 FROM `drinks` WHERE `name` = '[Demo] Cà phê sữa đá' AND `deleted_at` IS NULL
-);
 SET @milk_coffee_id = (
     SELECT `id` FROM `drinks`
-    WHERE `name` = '[Demo] Cà phê sữa đá' AND `deleted_at` IS NULL
+    WHERE `name` = 'Cà phê sữa đá' AND `deleted_at` IS NULL
     ORDER BY `id` ASC LIMIT 1
 );
 
-INSERT INTO `drinks` (
-    `name`, `description`, `ingredients`, `category`, `price`, `calories`, `temperature_type`,
-    `tags`, `image_url`, `is_available`, `description_embedding`, `created_at`, `updated_at`, `deleted_at`
-)
-SELECT
-    '[Demo] Trà sữa ô long',
-    'Trà ô long thơm kết hợp sữa tươi, dùng nóng hoặc lạnh.',
-    'Trà ô long, sữa tươi, đường',
-    'trà sữa',
-    42000.00,
-    250,
-    'both',
-    JSON_ARRAY('thơm', 'ít_ngọt'),
-    NULL,
-    TRUE,
-    NULL,
-    '2026-08-15 09:10:00',
-    '2026-08-15 09:10:00',
-    NULL
-WHERE NOT EXISTS (
-    SELECT 1 FROM `drinks` WHERE `name` = '[Demo] Trà sữa ô long' AND `deleted_at` IS NULL
-);
 SET @oolong_milk_tea_id = (
     SELECT `id` FROM `drinks`
-    WHERE `name` = '[Demo] Trà sữa ô long' AND `deleted_at` IS NULL
+    WHERE `name` = 'Trà sữa ô long' AND `deleted_at` IS NULL
     ORDER BY `id` ASC LIMIT 1
 );
 
@@ -171,7 +105,7 @@ INSERT INTO `orders` (`user_id`, `status`, `total_price`, `context_snapshot`, `c
 SELECT
     @customer_id,
     'done',
-    80000.00,
+    88000.00,
     JSON_OBJECT(
         'hour', 8,
         'weather', 'sunny',
@@ -197,7 +131,7 @@ INSERT INTO `order_items` (
     `order_id`, `drink_id`, `quantity`, `sugar_level`, `ice_level`, `note`,
     `unit_price`, `subtotal`, `created_at`, `updated_at`
 )
-SELECT @done_order_id, @peach_tea_id, 1, '50', 'less_ice', 'Ít ngọt', 45000.00, 45000.00,
+SELECT @done_order_id, @peach_tea_id, 1, '50', 'less_ice', 'Ít ngọt', 49000.00, 49000.00,
        '2026-08-30 08:30:00', '2026-08-30 08:30:00'
 WHERE NOT EXISTS (
     SELECT 1 FROM `order_items` WHERE `order_id` = @done_order_id AND `drink_id` = @peach_tea_id
@@ -207,7 +141,7 @@ INSERT INTO `order_items` (
     `order_id`, `drink_id`, `quantity`, `sugar_level`, `ice_level`, `note`,
     `unit_price`, `subtotal`, `created_at`, `updated_at`
 )
-SELECT @done_order_id, @milk_coffee_id, 1, '30', 'normal_ice', NULL, 35000.00, 35000.00,
+SELECT @done_order_id, @milk_coffee_id, 1, '30', 'normal_ice', NULL, 39000.00, 39000.00,
        '2026-08-30 08:30:00', '2026-08-30 08:30:00'
 WHERE NOT EXISTS (
     SELECT 1 FROM `order_items` WHERE `order_id` = @done_order_id AND `drink_id` = @milk_coffee_id
@@ -218,7 +152,7 @@ INSERT INTO `orders` (`user_id`, `status`, `total_price`, `context_snapshot`, `c
 SELECT
     @customer_id,
     'pending',
-    42000.00,
+    48000.00,
     JSON_OBJECT(
         'hour', 14,
         'weather', NULL,
@@ -244,7 +178,7 @@ INSERT INTO `order_items` (
     `order_id`, `drink_id`, `quantity`, `sugar_level`, `ice_level`, `note`,
     `unit_price`, `subtotal`, `created_at`, `updated_at`
 )
-SELECT @pending_order_id, @oolong_milk_tea_id, 1, '50', 'normal_ice', NULL, 42000.00, 42000.00,
+SELECT @pending_order_id, @oolong_milk_tea_id, 1, '50', 'normal_ice', NULL, 48000.00, 48000.00,
        '2026-09-02 14:15:00', '2026-09-02 14:15:00'
 WHERE NOT EXISTS (
     SELECT 1 FROM `order_items` WHERE `order_id` = @pending_order_id AND `drink_id` = @oolong_milk_tea_id

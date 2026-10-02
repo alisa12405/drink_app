@@ -1,6 +1,6 @@
 FROM php:8.3-fpm
 
-# System dependencies + PHP extensions required by Laravel 11
+# System dependencies and PHP extensions required by Laravel 13
 # (pdo_mysql, redis, gd, zip, intl, bcmath ... theo mục 0 & 2.2 của SPEC)
 RUN apt-get update && apt-get install -y \
     git \
@@ -13,7 +13,6 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libzip-dev \
     libicu-dev \
-    default-mysql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         pdo_mysql \
@@ -38,9 +37,7 @@ COPY backend/composer.json backend/composer.lock ./
 RUN composer install --no-interaction --prefer-dist --no-progress --no-scripts
 
 COPY backend/ ./
-RUN composer dump-autoload --optimize --no-interaction \
-    && cp -a vendor /opt/vendor \
-    && cp composer.lock /opt/composer.lock
+RUN composer dump-autoload --optimize --no-interaction
 
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-custom.ini
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -52,6 +49,6 @@ RUN groupadd -g 1000 laravel || true \
 
 EXPOSE 9000
 
-# Entrypoint chi dong bo cau hinh va hydrate dependencies da duoc build.
+# Entrypoint validates configuration, migrates the database and warms caches.
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["php-fpm"]
