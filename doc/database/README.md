@@ -23,7 +23,7 @@ Ngoài 7 bảng nghiệp vụ trên, Laravel còn tự sinh một số bảng h�
 ## 2. Cấu trúc thư mục
 
 ```
-database/
+doc/database/
 ├── README.md                  # Tài liệu tổng quan (file này)
 ├── DATABASE_SCHEMA.md         # Tổng quan tất cả bảng: mục đích, cấu trúc, dữ liệu mẫu
 └── tables/                    # Chi tiết thiết kế từng bảng + ghi chú
@@ -40,7 +40,7 @@ Cách đọc tài liệu:
 
 - Muốn có cái nhìn tổng quan nhanh (danh sách bảng, cột, mẫu dữ liệu) → đọc `DATABASE_SCHEMA.md`.
 - Muốn hiểu sâu 1 bảng cụ thể (index, ràng buộc, business rule, lý do thiết kế) → đọc file tương ứng trong `tables/`.
-- Muốn hiểu bối cảnh nghiệp vụ đầy đủ (use case, API, luồng gợi ý) → đọc `SPEC_smart-drink-recommendation-app.md` ở gốc repo.
+- Muốn hiểu bối cảnh nghiệp vụ đầy đủ (use case, API, luồng gợi ý) → đọc `SPEC_smart-drink-recommendation-app.md` trong thư mục `doc/`.
 
 ---
 

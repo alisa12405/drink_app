@@ -1,5 +1,9 @@
 # Triển khai Smart Drink bằng Docker và Cloudflare Tunnel
 
+> Khi clone và triển khai trên máy mới, làm theo [DEPLOY.md](../DEPLOY.md), bao gồm tạo cả hai file môi trường, sinh `APP_KEY` bằng Docker và khởi tạo menu/admin. Các lệnh trong tài liệu này chạy từ root repository.
+
+> Khi clone và triển khai trên máy mới, làm theo [DEPLOY.md](../DEPLOY.md), bao gồm tạo cả hai file môi trường, sinh `APP_KEY` bằng Docker và khởi tạo menu/admin. Các lệnh trong tài liệu này chạy từ root repository.
+
 Đường chạy mặc định là production tại `https://drinks.hmmh.click`:
 
 ```text
