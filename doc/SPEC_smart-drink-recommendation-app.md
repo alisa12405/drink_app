@@ -42,7 +42,7 @@
 - FR2: Hệ thống phải lấy được ngữ cảnh hiện tại của người dùng tại thời điểm request gợi ý: giờ trong ngày (server time), thời tiết + nhiệt độ (qua Weather API theo vị trí), và tuỳ chọn "dịp" do user chọn tay (ví dụ "đang học bài", "sau khi tập gym").
 - FR3: Hệ thống phải lọc sơ bộ (pre-filter) danh sách món theo ngữ cảnh trước khi tính điểm tương đồng.
 - FR4: Hệ thống phải tính độ tương đồng ngữ nghĩa giữa vector hồ sơ user và vector từng món bằng cosine similarity.
-- FR5: Hệ thống phải gọi LLM để re-rank top ứng viên và sinh giải thích ngôn ngữ tự nhiên kèm theo mỗi gợi ý.
+- FR5: Hệ thống phải gọi LLM để re-rank top ứng viên, sinh một câu tóm tắt chung ngắn cho nhóm món được chọn và giải thích ngôn ngữ tự nhiên kèm theo mỗi gợi ý; khi LLM lỗi, API dùng câu tóm tắt và ranking dự phòng.
 - FR6: Mọi vector embedding (menu, user profile) phải được cache/lưu trữ, không tính lại nếu dữ liệu nguồn không đổi.
 - FR7: Admin có thể CRUD món uống; mỗi lần thêm/sửa món phải trigger tính lại embedding cho món đó.
 - FR8: Hệ thống phải ghi log mỗi lượt gợi ý (context, danh sách được gợi ý, món user thực sự chọn) để phục vụ đánh giá chất lượng gợi ý sau này.

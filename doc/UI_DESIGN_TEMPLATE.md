@@ -67,10 +67,12 @@ Màu bổ trợ dùng trực tiếp trong `App.tsx` (không phải token nhưng 
 
 ## 3. Catalog các component pattern (trích từ `App.tsx`)
 
+> Các màn hình sản phẩm không hiển thị mã use case `UC-0x` trong tiêu đề, mô tả hoặc trạng thái rỗng. Mã UC chỉ dùng trong tài liệu phân tích. Sidebar trái của `AppNavbar` là điều hướng chức năng chung; `CategorySidebar` riêng trên trang menu vẫn dùng để lọc danh mục đồ uống.
+
 | Component | Vai trò | Đặc điểm chính cần giữ lại |
 |---|---|---|
 | `KitchenLogo` | Logo thương hiệu | Icon tròn màu primary + tên brand (font Poppins) + tagline nhỏ chữ hoa. Dùng chung cho mọi trang. |
-| `Navbar` | Thanh điều hướng trên cùng, sticky | Logo trái, menu link giữa (ẩn trên mobile), bên phải: chuyển ngôn ngữ (bỏ qua — app chỉ tiếng Việt), icon giỏ hàng có badge số lượng. |
+| `AppNavbar` | Header sticky và sidebar chức năng bên trái | Nút mở sidebar ở mọi kích thước, logo, chuông và giỏ hàng; guest có nút đăng ký chữ trắng. Sidebar chứa link theo role, mục hiện tại có nền kem/viền caramel và `aria-current`, có thông tin user và đăng xuất. Đóng khi chọn link, bấm nền, nút đóng hoặc Escape; khóa cuộn nền và giữ focus trong sidebar. |
 | `HeroBanner` | Banner giới thiệu quán, ảnh nền full-width + card thông tin nổi (overlay bên trái) | Card nổi chứa: logo nhỏ, tên quán, trạng thái mở cửa (chấm xanh), thời gian chuẩn bị, đơn tối thiểu, rating sao. **Dự án**: có thể đơn giản hoá thành banner tĩnh giới thiệu app + lời chào user đã đăng nhập. |
 | `TabBar` | Thanh dưới navbar: chọn hình thức nhận đồ + địa điểm + ô tìm kiếm | **Điều chỉnh**: bỏ tab Delivery/Pickup/Dine-in (quán tại chỗ không giao hàng) và chọn khu vực; giữ lại ô tìm kiếm món. |
 | `CategorySidebar` | Sidebar trái danh sách danh mục (icon + label), có trạng thái active | Ánh xạ trực tiếp với filter category của UC-03 (menu đồ uống). |
@@ -90,7 +92,7 @@ Màu bổ trợ dùng trực tiếp trong `App.tsx` (không phải token nhưng 
 ### 4.1 Trang Menu (Home)
 
 ```
-Navbar (logo | menu links | giỏ hàng)
+AppNavbar (nút mở sidebar | logo | thông báo / đăng ký | giỏ hàng)
 HeroBanner (ảnh nền + card thông tin quán, có thể lược bỏ/rút gọn)
 TabBar (giữ lại: ô tìm kiếm món; bỏ: tab hình thức nhận đồ + chọn khu vực)
 ┌───────────────┬─────────────────────────────┬───────────────────┐
@@ -102,7 +104,7 @@ TabBar (giữ lại: ô tìm kiếm món; bỏ: tab hình thức nhận đồ + 
 ### 4.2 Trang Giỏ hàng / Checkout
 
 ```
-Navbar rút gọn (logo + "Secure Checkout" + ProgressSteps bước 2 + badge an toàn)
+AppNavbar dùng chung + hàng ProgressSteps riêng bên dưới
 ┌───────────────────────────────────────┬───────────────────────┐
 │ 1. Thông tin liên hệ (SectionHeader)  │  Order Summary panel  │
 │ 2. Loại đơn (dine-in/mang đi — thay   │  - danh sách món       │
@@ -116,7 +118,7 @@ Navbar rút gọn (logo + "Secure Checkout" + ProgressSteps bước 2 + badge an
 ### 4.3 Trang xác nhận đơn hàng
 
 ```
-Navbar rút gọn + ProgressSteps bước 3
+AppNavbar dùng chung + ProgressSteps bước 3
 Card giữa màn hình: icon ✅ lớn, "Đặt hàng thành công!",
 mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 ```
@@ -160,9 +162,9 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 
 - [x] **Bước 2 — Trang chủ / Menu (UC-03, UC-04)** ✅ Đã hoàn thành
   - Dựng lại `frontend/src/views/HomeView.vue` theo layout 4.1: `AppNavbar` (dùng lại từ Bước 0/1) + `WelcomeBanner` (hero rút gọn, không dùng ảnh nền thật để tránh phụ thuộc mạng ngoài — dùng gradient `primary`→`primary-hover` + emoji 🧋) + `CategorySidebar` + lưới `DrinkCard` + `CartSidebar` cố định bên phải (`lg:sticky`).
-  - `RecommendationBanner` tải public `GET /api/recommendation-context` để hiện đồng hồ, thời tiết và một câu gợi ý chung; không tự gọi LLM khi mở trang. Nút “Nhận gợi ý của bạn” mới gọi `GET /api/recommendations`, hiển thị đoạn “Vì sao chọn các món này?”, top 5 và lý do riêng từng món. Guest nhận popup đăng nhập; customer chưa có preference nhận popup chọn khai báo trước hoặc dùng fallback.
+  - `RecommendationBanner` tải public `GET /api/recommendation-context` để hiện đồng hồ, thời tiết và một câu gợi ý chung ngắn theo giờ/nhiệt độ; không tự gọi LLM khi mở trang. Vị trí trình duyệt được lấy mới mỗi lần yêu cầu. Nút “Nhận gợi ý của bạn” mới gọi `GET /api/recommendations`, hiển thị một câu tóm tắt riêng do OpenAI sinh cùng top 5 và lý do từng món; khi OpenAI lỗi thì hiện câu tóm tắt dự phòng từ backend. Badge cá nhân hóa/dự phòng nằm cạnh câu tóm tắt top 5, không nằm cạnh câu gợi ý chung. Guest nhận popup đăng nhập; customer chưa có preference nhận popup chọn khai báo trước hoặc dùng fallback.
   - **Component mới tạo**:
-    - `frontend/src/components/layout/AppNavbar.vue` — navbar rộng tối đa 1800px đồng bộ phần nội dung, có logo, nav-link, actions, chuông thông báo và icon giỏ hàng. `NotificationCenter.vue` mở panel từ header, poll 10 giây và hiển thị toast trượt vào ở góc dưới khi có thông báo mới.
+    - `frontend/src/components/layout/AppNavbar.vue` — header rộng tối đa 1800px, nút mở sidebar trái trên desktop/mobile, logo, chuông thông báo và icon giỏ hàng. Sidebar dùng chung cho Menu/Sở thích/Lịch sử/3 mục Admin, tự highlight theo route; guest có Đăng nhập/Đăng ký. Logo thu gọn thành biểu tượng dưới 360px để header không tràn. CSS link mặc định nằm trong `@layer base` để các utility màu chữ, đặc biệt nút đăng ký nền caramel/chữ trắng, được ưu tiên. `NotificationCenter.vue` mở panel từ header, poll 10 giây và hiển thị toast trượt vào ở góc dưới khi có thông báo mới.
     - `frontend/src/components/menu/CategorySidebar.vue` — danh sách danh mục (v-model), danh mục lấy động từ dữ liệu `drinks` trả về (không hardcode), kèm emoji theo danh mục.
     - `frontend/src/components/menu/DrinkCard.vue` — thẻ món cỡ lớn theo lưới responsive 2–3 cột: khung ảnh cao 176–208px và dùng `object-contain` để hiển thị trọn sản phẩm, không crop/zoom; nếu không có `image_url` thì hiển thị emoji theo danh mục; badge "Phổ biến" nếu `tags` chứa `best_seller`; nút thêm vào giỏ.
     - `frontend/src/components/menu/CartSidebar.vue` — panel giỏ hàng đầy đủ chức năng cũ (tăng/giảm số lượng, xoá, chọn đường/đá theo `SUGAR_OPTIONS`/`ICE_OPTIONS`, ghi chú, trường "dịp", tổng tiền, nút đặt hàng, thông báo lỗi/thành công) — chuyển từ code inline trong `HomeView.vue` cũ sang component riêng, `HomeView.vue` chỉ giữ state + logic gọi API. *(Đã đơn giản hoá thêm ở Bước 3, xem bên dưới.)*
@@ -177,7 +179,7 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
   - **Kiến trúc**: state giỏ hàng nằm trong **Pinia store `frontend/src/stores/cart.js`** (`useCartStore`: `items`, `occasion`, `totalQuantity`/`totalPrice`, action `addItem/increase/decrease/remove/clear`) để chia sẻ giữa trang Menu và trang Checkout qua điều hướng route.
   - **Trang Menu (`HomeView.vue`)**: `CartSidebar.vue` chỉ hiển thị **danh sách món rút gọn** (emoji, tên, thành tiền, tăng/giảm số lượng, xoá) + dòng gợi ý "chọn đường/đá và ghi chú ở bước Giỏ hàng & Thanh toán tiếp theo". Nút "Tiến hành đặt hàng" chỉ emit `checkout` để điều hướng sang `/checkout` (không đặt hàng trực tiếp tại đây).
   - **Trang `frontend/src/views/CheckoutView.vue`** (route public `/checkout`, yêu cầu giỏ không rỗng) — gồm 2 trạng thái nội bộ (`step: 'form' | 'confirmed'`):
-    - Trạng thái `form`: navbar rút gọn + `ProgressSteps` (Giỏ hàng → Thanh toán → Hoàn tất), 5 khối `SectionHeader` đánh số:
+    - Trạng thái `form`: `AppNavbar` + hàng `ProgressSteps` riêng (Giỏ hàng → Thanh toán → Hoàn tất), 5 khối `SectionHeader` đánh số:
       1. **Món đã chọn** — mỗi món: ảnh/emoji, tên, thành tiền, tăng/giảm số lượng, xoá, chọn đường/đá (`SUGAR_OPTIONS`/`ICE_OPTIONS`), ô ghi chú riêng — thao tác trực tiếp trên `cart.items` qua `useCartStore`.
       2. **Thông tin khách hàng** — customer hiển thị tên/email; guest nhập tên 2–100 ký tự và được thông báo đơn không có lịch sử/rating.
       3. **Hình thức nhận đồ** — `RadioCard` chọn Dùng tại quán/Mang đi (`ORDER_TYPE_OPTIONS` trong `constants/drinkOptions.js`); gửi riêng qua trường `order_type` (`dine_in`/`takeaway`, enum `App\Enums\OrderType`) lên `POST /api/orders`, lưu vào khoá `context_snapshot.order_type` (không cần migration vì cột `context_snapshot` là JSON).

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { useMenuStore } from '@/stores/menu'
@@ -77,10 +77,6 @@ function goToPage(page) {
   menuSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-async function onLogout() {
-  await auth.logout()
-  await router.replace({ name: 'home' })
-}
 
 function goToCheckout() {
   if (cart.items.length === 0) return
@@ -90,54 +86,7 @@ function goToCheckout() {
 
 <template>
   <div class="min-h-screen bg-background">
-    <AppNavbar :cart-count="cart.totalQuantity" show-cart @cart-click="goToCheckout">
-      <RouterLink v-if="auth.isAuthenticated" :to="{ name: 'preferences' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Sở thích của tôi
-      </RouterLink>
-      <RouterLink v-if="auth.isAuthenticated" :to="{ name: 'order-history' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        Lịch sử đơn hàng
-      </RouterLink>
-      <template v-if="auth.user?.role === 'admin'">
-        <RouterLink :to="{ name: 'admin-menu' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-          Quản lý menu
-        </RouterLink>
-        <RouterLink :to="{ name: 'admin-orders' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-          Quản lý đơn hàng
-        </RouterLink>
-        <RouterLink :to="{ name: 'admin-reports' }" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-          Báo cáo
-        </RouterLink>
-      </template>
-
-      <template #actions>
-        <div v-if="auth.isAuthenticated" class="hidden md:block text-right leading-tight">
-          <p class="text-xs font-semibold text-foreground">{{ auth.user?.name }}</p>
-          <p class="text-[10px] text-muted-foreground uppercase tracking-wide">{{ auth.user?.role }}</p>
-        </div>
-        <button
-          v-if="auth.isAuthenticated"
-          type="button"
-          class="text-xs font-semibold text-muted-foreground hover:text-destructive border border-border rounded-lg px-3 py-1.5 transition-colors"
-          @click="onLogout"
-        >
-          Đăng xuất
-        </button>
-        <div v-else class="flex items-center gap-2">
-          <RouterLink
-            :to="{ name: 'login' }"
-            class="text-xs font-semibold text-muted-foreground hover:text-primary border border-border rounded-lg px-3 py-1.5 transition-colors"
-          >
-            Đăng nhập
-          </RouterLink>
-          <RouterLink
-            :to="{ name: 'register' }"
-            class="hidden sm:inline-flex text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg px-3 py-1.5 transition-colors"
-          >
-            Đăng ký
-          </RouterLink>
-        </div>
-      </template>
-    </AppNavbar>
+    <AppNavbar :cart-count="cart.totalQuantity" show-cart @cart-click="goToCheckout" />
 
     <div class="max-w-[1800px] mx-auto px-4 md:px-6 py-6 flex flex-col gap-6">
       <WelcomeBanner :name="auth.user?.name" />

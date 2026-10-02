@@ -94,7 +94,11 @@ class RecommendationService
         $llmRanked = null;
 
         try {
-            $llmRanked = $this->reranker->rerank($candidates->all(), $context);
+            $llmRanked = $this->reranker->rerank(
+                $candidates->all(),
+                $context,
+                array_values(array_filter($preference?->taste_tags ?? [])),
+            );
         } catch (Throwable $exception) {
             Log::warning('Recommendation rerank failed; fallback used.', [
                 'exception' => $exception::class,
@@ -102,7 +106,7 @@ class RecommendationService
             ]);
         }
 
-        [$rankedCandidates, $explanations] = $this->finalRanking($candidates, $llmRanked, $context);
+        [$rankedCandidates, $explanations] = $this->finalRanking($candidates, $llmRanked['recommendations'] ?? null, $context);
         if ($llmRanked !== null) {
             $strategy = 'hybrid_llm';
         }
@@ -131,7 +135,9 @@ class RecommendationService
                 'fallback' => $strategy !== 'hybrid_llm',
                 'context' => $context,
                 'recommendation_log_id' => $logId,
-                'reason_summary' => $this->reasonSummary($strategy, $context, $preference),
+                'reason_summary' => $llmRanked !== null && $llmRanked['summary'] !== ''
+                    ? $llmRanked['summary']
+                    : $this->reasonSummary($context, $preference),
             ],
         ];
     }
@@ -155,7 +161,6 @@ class RecommendationService
     }
 
     private function reasonSummary(
-        string $strategy,
         array $context,
         ?UserPreference $preference,
     ): string {
@@ -172,13 +177,9 @@ class RecommendationService
             $parts[] = 'ngữ cảnh '.$context['occasion'];
         }
 
-        $basis = $parts === []
-            ? 'thời điểm hiện tại và những món nổi bật trong menu'
-            : implode(', ', $parts);
-
-        return $strategy === 'hybrid_llm'
-            ? "Top 5 được chọn và sắp xếp lại dựa trên {$basis}. Mỗi món có một lý do riêng ở bên dưới."
-            : "Top 5 được chọn theo {$basis}. Hệ thống đang dùng phương án dự phòng an toàn.";
+        return $parts === []
+            ? 'Đây là những món nổi bật phù hợp với thời điểm hiện tại.'
+            : 'Những món này được chọn theo '.implode(', ', $parts).'.';
     }
 
     /**

@@ -6,6 +6,8 @@
   min-height: 100vh;
 }
 
-a {
-  color: var(--primary);
+@layer base {
+  a {
+    color: var(--primary);
+  }
 }
