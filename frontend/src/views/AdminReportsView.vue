@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { BarChart3, Sparkles, Target, TrendingUp } from 'lucide-vue-next'
+import { Banknote, BarChart3, Sparkles, Target, TrendingUp } from 'lucide-vue-next'
 import { adminReportsApi } from '@/services/api'
 import { getCategoryEmoji } from '@/constants/drinkOptions'
 import AppNavbar from '@/components/layout/AppNavbar.vue'
@@ -10,10 +10,20 @@ import FormField from '@/components/ui/FormField.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
 
-const fromDate = ref('')
-const toDate = ref('')
+function toLocalDateString(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const today = new Date()
+const firstDayOfRange = new Date(today.getFullYear(), today.getMonth() - (today.getDate() === 1 ? 1 : 0), 1)
+const fromDate = ref(toLocalDateString(firstDayOfRange))
+const toDate = ref(toLocalDateString(today))
 
 const bestSellers = ref([])
+const totalRevenue = ref(null)
 const bestSellersLoading = ref(true)
 const bestSellersError = ref('')
 
@@ -41,8 +51,9 @@ async function loadBestSellers() {
   try {
     const { data } = await adminReportsApi.bestSellingDrinks(dateParams())
     bestSellers.value = data.data ?? []
+    totalRevenue.value = Number(data.meta?.total_revenue ?? 0)
   } catch {
-    bestSellersError.value = 'Không tải được báo cáo món bán chạy.'
+    bestSellersError.value = 'Không tải được báo cáo doanh thu và món bán chạy.'
   } finally {
     bestSellersLoading.value = false
   }
@@ -78,6 +89,10 @@ function formatAverageRating(value) {
   return `${Number(value).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ★`
 }
 
+function formatCurrency(value) {
+  return `${Number(value ?? 0).toLocaleString('vi-VN')} ₫`
+}
+
 </script>
 
 <template>
@@ -95,6 +110,25 @@ function formatAverageRating(value) {
         <FormField v-model="fromDate" label="Từ ngày" type="date" class="w-auto" />
         <FormField v-model="toDate" label="Đến ngày" type="date" class="w-auto" />
         <BaseButton :full-width="false" @click="loadAll">Áp dụng</BaseButton>
+      </BaseCard>
+
+      <BaseCard padding="lg" class="flex flex-col gap-4">
+        <SectionHeader title="Tổng quan doanh thu" />
+        <p class="text-sm text-muted-foreground -mt-3">Chỉ tính các đơn hàng đã hoàn tất trong khoảng thời gian đã chọn.</p>
+
+        <p v-if="bestSellersLoading" class="text-sm text-muted-foreground">Đang tải doanh thu…</p>
+        <p v-else-if="bestSellersError" class="text-sm text-destructive bg-destructive-bg rounded-xl px-3.5 py-2.5">
+          {{ bestSellersError }}
+        </p>
+        <div v-else class="flex items-center gap-4 rounded-2xl border border-primary/15 bg-primary/5 p-5">
+          <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+            <Banknote :size="24" class="text-primary" />
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tổng doanh thu</p>
+            <p class="mt-1 font-heading text-3xl font-bold text-foreground">{{ formatCurrency(totalRevenue) }}</p>
+          </div>
+        </div>
       </BaseCard>
 
       <BaseCard padding="lg" class="flex flex-col gap-4">

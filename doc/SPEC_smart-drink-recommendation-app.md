@@ -35,6 +35,7 @@
 8. UC-08 (Admin) Quản lý menu — CRUD món uống, mô tả, nguyên liệu, giá, ảnh
 9. UC-09 (Admin) Quản lý đơn hàng — xem, đổi trạng thái (pending/confirmed/done/cancelled)
 10. UC-10 (Admin) Xem báo cáo thống kê món bán nhiều nhất, hiệu quả gợi ý
+11. UC-11 (Admin) Quản lý tài khoản — tìm/lọc, sửa thông tin và vai trò, kích hoạt/vô hiệu hóa tài khoản
 
 ### 1.3. Yêu cầu chức năng (Functional Requirements)
 
@@ -49,6 +50,7 @@
 - FR11: Hệ thống phải lưu thông báo trong database; Admin nhận thông báo khi có đơn mới, Customer nhận thông báo khi đặt hàng và khi trạng thái đơn thay đổi.
 - FR12: Mỗi user chỉ được gọi gợi ý cá nhân hóa tối đa 5 lần/phút; API trả `429` và thời gian chờ khi vượt giới hạn.
 - FR13: Admin được tải ảnh JPG/PNG/WebP tối đa 5 MB cho món; file được lưu bền và ảnh cũ được dọn khi thay thế.
+- FR14: Admin có thể tìm/lọc tài khoản, sửa tên/email/vai trò và kích hoạt/vô hiệu hóa tài khoản; không xóa cứng dữ liệu tài khoản, không tự hạ quyền/vô hiệu hóa chính mình, và phải duy trì ít nhất một admin đang hoạt động. Tài khoản bị vô hiệu hóa không được đăng nhập hoặc tiếp tục dùng token Sanctum hiện có.
 - FR9: Khách vãng lai phải xem được menu và tạo đơn bằng tên mà không cần tài khoản; `user_id` của đơn để trống, không cung cấp lịch sử/hủy/rating. Top 5 cá nhân hóa vẫn yêu cầu đăng nhập.
 - FR10: Khi mở menu, hệ thống chỉ hiển thị thời gian, thời tiết (nếu có vị trí) và một gợi ý chung. Chỉ gọi API top 5 sau khi người dùng chủ động bấm; nếu chưa có preference thì hỏi người dùng muốn khai báo trước hay tiếp tục bằng fallback.
 
@@ -95,7 +97,7 @@ Nguyên tắc thiết kế: tách riêng **Recommendation module** khỏi Order/
 ### 2.2. Thiết kế cơ sở dữ liệu (bảng chính)
 
 **users**
-- id, name, email, password, created_at, updated_at
+- id, name, email, password, role (customer/admin), is_active (boolean), created_at, updated_at
 
 **user_preferences**
 - id, user_id (FK), taste_tags (JSON — ví dụ ["ngọt","có_caffeine"]), sugar_level_default, ice_level_default, allergy_notes, profile_text (đoạn text tổng hợp dùng để embed), profile_embedding (JSON/LONGTEXT lưu vector), updated_at

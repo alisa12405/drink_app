@@ -77,6 +77,22 @@ class AuthTest extends TestCase
             ->assertJsonValidationErrors(['email']);
     }
 
+    public function test_inactive_user_cannot_login(): void
+    {
+        User::factory()->create([
+            'email' => 'inactive@example.com',
+            'password' => 'password123',
+            'is_active' => false,
+        ]);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'inactive@example.com',
+            'password' => 'password123',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
+    }
+
     public function test_me_requires_authentication(): void
     {
         $this->getJson('/api/auth/me')->assertUnauthorized();

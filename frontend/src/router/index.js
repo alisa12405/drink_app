@@ -8,6 +8,7 @@ import OrderHistoryView from '../views/OrderHistoryView.vue'
 import AdminMenuView from '../views/AdminMenuView.vue'
 import AdminOrdersView from '../views/AdminOrdersView.vue'
 import AdminReportsView from '../views/AdminReportsView.vue'
+import AdminUsersView from '../views/AdminUsersView.vue'
 import CheckoutView from '../views/CheckoutView.vue'
 
 const router = createRouter({
@@ -63,6 +64,12 @@ const router = createRouter({
       path: '/admin/reports',
       name: 'admin-reports',
       component: AdminReportsView,
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: AdminUsersView,
       meta: { requiresAuth: true, requiresAdmin: true },
     },
   ],

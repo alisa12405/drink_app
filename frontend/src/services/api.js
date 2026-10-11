@@ -92,6 +92,11 @@ export const adminOrdersApi = {
   updateStatus: (id, status) => apiClient.patch(`/admin/orders/${id}/status`, { status }),
 }
 
+export const adminUsersApi = {
+  list: (params) => apiClient.get('/admin/users', { params }),
+  update: (id, payload) => apiClient.put(`/admin/users/${id}`, payload),
+}
+
 export const adminReportsApi = {
   bestSellingDrinks: (params) => apiClient.get('/admin/reports/best-selling-drinks', { params }),
   recommendationEffectiveness: (params) =>

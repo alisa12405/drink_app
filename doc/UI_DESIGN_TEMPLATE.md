@@ -135,7 +135,7 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 | — (không có mẫu tương ứng) | UC-01 Đăng ký/đăng nhập | `LoginView.vue` | Không có trong template — thiết kế theo cùng bộ token màu/fonts (card trắng bo góc, nút cam, input rounded-xl) để đồng bộ. |
 | — | UC-02 Sở thích | `PreferenceView.vue` | Dùng lại pattern `FormField` + radio-card (mức đường/đá) + `SectionHeader`. |
 | Danh sách item dạng card + rating | UC-06 (lịch sử đơn), UC-07 (đánh giá) | `OrderHistoryView.vue` | Dùng pattern card đơn hàng tương tự Order Summary; thêm sao đánh giá (đã có), style lại theo token màu. |
-| — (khác domain, cần thiết kế riêng) | UC-08/09/10 (Admin) | `AdminMenuView.vue`, `AdminOrdersView.vue`, `AdminReportsView.vue` | Template không có trang admin — tự thiết kế bảng dữ liệu (table), filter, form dùng chung token màu/border/radius cho nhất quán; có thể tham khảo thêm `components/ui/table.tsx`, `card.tsx` trong `template_frontend` để lấy ý tưởng bố cục bảng/thẻ. |
+| — (khác domain, cần thiết kế riêng) | UC-08/09/10/11 (Admin) | `AdminMenuView.vue`, `AdminOrdersView.vue`, `AdminReportsView.vue`, `AdminUsersView.vue` | Template không có trang admin — tự thiết kế bảng dữ liệu (table), filter, form dùng chung token màu/border/radius cho nhất quán; có thể tham khảo thêm `components/ui/table.tsx`, `card.tsx` trong `template_frontend` để lấy ý tưởng bố cục bảng/thẻ. |
 
 ---
 
@@ -227,12 +227,18 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
   - Đã kiểm tra: build frontend production không lỗi, không có lỗi linter, route `/admin/orders` trả HTTP 200 qua dev server, full test suite backend (50/50) vẫn pass (không đổi backend).
 
 - [x] **Bước 8 — Admin: Báo cáo (UC-10)** ✅ Đã hoàn thành
-  - Viết lại `frontend/src/views/AdminReportsView.vue` từ CSS thuần sang Tailwind + bộ component dùng chung: `AppNavbar` (highlight "Báo cáo"), `BaseCard` cho toolbar lọc ngày + 2 panel báo cáo, `SectionHeader` cho tiêu đề panel, `FormField` (`type="date"`) cho khoảng ngày, `BaseButton` cho nút "Áp dụng". **Giữ nguyên 100% logic nghiệp vụ cũ** (`loadBestSellers`, `loadEffectiveness`, `dateParams`) — chỉ thay lớp UI.
+  - `AdminReportsView.vue` dùng Tailwind + bộ component dùng chung: `AppNavbar` (highlight "Báo cáo"), `BaseCard` cho toolbar lọc ngày + 3 thẻ báo cáo, `SectionHeader` cho tiêu đề, `FormField` (`type="date"`) cho khoảng ngày, `BaseButton` cho nút "Áp dụng". Khoảng ngày mặc định là đầu tháng đến hôm nay; nếu hôm nay là ngày đầu tháng thì bắt đầu từ đầu tháng trước.
+  - Thẻ "Tổng quan doanh thu" cộng doanh thu của mọi đơn `done` trong khoảng ngày, độc lập với giới hạn top món; hai phần còn lại hiển thị món bán chạy và hiệu quả gợi ý.
   - Panel "Món bán chạy nhất": bảng Tailwind (`border-border`, hover row `bg-secondary/30`), cột thứ hạng đổi thành huy chương 🥇🥈🥉 cho top 3, tên món kèm emoji theo category (`getCategoryEmoji()`), doanh thu tô màu `primary` in đậm.
   - Panel "Hiệu quả gợi ý": 3 khối số liệu lớn dạng card (nền `secondary/40`, icon `Sparkles`/`TrendingUp`/`Target` từ `lucide-vue-next`, số lớn `text-3xl font-heading`) cho Lượt gợi ý/Lượt dẫn đến mua hàng/Tỉ lệ chuyển đổi; danh sách phân bố theo vị trí gợi ý hiển thị dạng list nền `muted`.
   - Đã kiểm tra: build frontend production không lỗi, không có lỗi linter, route `/admin/reports` trả HTTP 200 qua dev server, full test suite backend (50/50) vẫn pass (không đổi backend).
 
-> Toàn bộ 9 trang trong kế hoạch (Bước 0-8) đã hoàn thành việc áp dụng thiết kế Tailwind + bộ component dùng chung đồng bộ token màu/spacing/typography theo mục 2.
+- [x] **Bước 9 — Admin: Quản lý tài khoản (UC-11)** ✅ Đã hoàn thành
+  - `AdminUsersView.vue` hiển thị danh sách tài khoản có phân trang, tìm kiếm theo tên/email, lọc vai trò và trạng thái; admin sửa tên/email/vai trò và kích hoạt hoặc vô hiệu hóa tài khoản.
+  - Thu hồi token khi vô hiệu hóa; chặn đăng nhập và request đã xác thực từ tài khoản bị tắt. Không xóa cứng để giữ lịch sử giao dịch; không cho tự hạ quyền/vô hiệu hóa chính mình hoặc vô hiệu hóa admin đang hoạt động cuối cùng.
+  - Tái dùng `AppNavbar`, `BaseCard`, `SectionHeader`, `FormField`, `BaseButton`; bảng có cuộn ngang trên màn hình nhỏ.
+
+> Toàn bộ 10 trang trong kế hoạch (Bước 0-9) đã hoàn thành việc áp dụng thiết kế Tailwind + bộ component dùng chung đồng bộ token màu/spacing/typography theo mục 2.
 
 ---
 

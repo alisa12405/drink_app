@@ -9,7 +9,7 @@ Dự án là web app đặt đồ uống có cá nhân hoá theo sở thích và
 
 - `guest`: xem menu/context chung, quản lý giỏ và đặt món bằng tên; không có top 5 cá nhân hóa, lịch sử hoặc rating.
 - `customer`: đăng ký/đăng nhập, khai báo sở thích, xem menu, nhận gợi ý, đặt/hủy đơn, xem lịch sử và đánh giá món.
-- `admin`: quản lý menu, xử lý trạng thái đơn và xem báo cáo.
+- `admin`: quản lý tài khoản, menu và trạng thái đơn, đồng thời xem báo cáo.
 
 Thứ tự ưu tiên khi các nguồn không đồng nhất:
 
@@ -67,11 +67,11 @@ drink_app/
 │   │   ├── Jobs/                     # Job embedding đồ uống và hồ sơ người dùng
 │   │   ├── Models/                   # 7 Eloquent models
 │   │   └── Services/                 # Profile, embedding, weather, recommendation và LLM rerank
-│   ├── database/                     # 11 migrations, factories, seeders
+│   ├── database/                     # 12 migrations, factories, seeders
 │   ├── routes/api.php                # Nguồn route API thực tế
 │   └── tests/                        # PHPUnit feature tests
 ├── frontend/                         # Vue SPA đang dùng
-│   ├── src/views/                    # 9 view đang có route
+│   ├── src/views/                    # 10 view đang có route
 │   ├── src/components/               # layout/menu/ui components
 │   ├── src/stores/                   # Pinia auth/cart/menu
 │   ├── src/services/api.js           # Axios client và toàn bộ API wrappers
@@ -124,13 +124,14 @@ Form Request → API Controller → Service/Job → Eloquent Model
 - Frontend routing/guards: `frontend/src/router/index.js`.
 - HTTP client: `frontend/src/services/api.js`; token lấy từ `localStorage.auth_token`.
 - Laravel HTTP: `backend/public/index.php` → `backend/bootstrap/app.php` → `backend/routes/api.php`.
-- Role middleware alias: `role` → `EnsureUserHasRole`; admin routes dùng `auth:sanctum,role:admin`.
+- Middleware alias: `active` → `EnsureUserIsActive`, `role` → `EnsureUserHasRole`; admin routes dùng `auth:sanctum,active,role:admin`.
 
 ### 5.2 Module ownership
 
 | Module | Backend | Frontend | Trạng thái ngắn |
 |---|---|---|---|
 | Auth | `AuthController`, Auth Requests, `UserResource` | `auth.js`, Login/Register | Hoạt động theo token Sanctum |
+| Admin accounts | `AdminUserController`, Admin Requests, `UserResource` | `AdminUsersView` | Tìm/lọc/phân trang, sửa thông tin/quyền, bật/tắt tài khoản; thu hồi token, giữ lịch sử |
 | Preferences | `PreferenceController`, `UserProfileTextService` | `PreferenceView` | Explicit + profile text; embedding chạy qua queue |
 | Menu | `DrinkController`, `DrinkResource` | `HomeView`, menu components | Public menu/filter có |
 | Cart/checkout | `OrderController::store` | `cart.js`, `CheckoutView` | Core order có; chưa có size |
@@ -139,7 +140,7 @@ Form Request → API Controller → Service/Job → Eloquent Model
 | Admin menu | admin methods của `DrinkController` | `AdminMenuView` | CRUD/availability/soft delete + upload ảnh có |
 | Admin orders | admin methods của `OrderController` | `AdminOrdersView` | Filter, pagination, transition có |
 | Notifications | `NotificationController`, database notifications | `NotificationCenter` | Chuông, panel, polling 10 giây và toast; admin nhận đơn mới, customer nhận cập nhật đơn |
-| Reports | `ReportController` | `AdminReportsView` | Best seller + hiệu quả recommendation; cần dữ liệu vận hành thật |
+| Reports | `ReportController` | `AdminReportsView` | Tổng doanh thu + best seller + hiệu quả recommendation; cần dữ liệu vận hành thật |
 | Recommendation | Controller/Services/Jobs + Redis worker | `RecommendationBanner` | Context public hiển thị trước; top 5 + lý do chỉ tải khi customer bấm; guest được mời đăng nhập |
 
 ### 5.3 Luồng chính đang hoạt động
@@ -178,7 +179,7 @@ users 1 ── * notifications
 
 | Bảng | Dữ liệu quan trọng | Quy tắc |
 |---|---|---|
-| `users` | name, email, hashed password, role | email unique; role customer/admin |
+| `users` | name, email, hashed password, role, is_active | email unique; role customer/admin; inactive không đăng nhập được |
 | `user_preferences` | taste tags, default sugar/ice, allergy, profile text/vector | `user_id` unique, cascade khi xóa user |
 | `drinks` | nội dung, category, price, temperature, tags, image URL/path, availability, vector | soft delete; upload ảnh lưu disk public; public chỉ thấy available và chưa xóa |
 | `orders` | nullable user, customer name, status, total, context snapshot | guest dùng `user_id=null`; giá/ngữ cảnh/tên là snapshot |
@@ -241,6 +242,8 @@ Response Resource thường bọc payload trong `{ "data": ... }`; lỗi validat
 | PATCH | `/api/admin/orders/{order}/status` | chuyển trạng thái hợp lệ |
 | GET | `/api/admin/reports/best-selling-drinks` | optional from/to/limit; mỗi món có `average_rating` theo thời điểm tạo đánh giá trong khoảng lọc |
 | GET | `/api/admin/reports/recommendation-effectiveness` | optional from/to/window_hours/limit |
+| GET | `/api/admin/users` | optional search/role/status; phân trang 15 |
+| PUT | `/api/admin/users/{user}` | sửa name/email/role/is_active; không xóa cứng, không tự khóa admin cuối |
 
 ## 8. Frontend routes và UI conventions
 
@@ -254,6 +257,7 @@ Response Resource thường bọc payload trong `{ "data": ... }`; lỗi validat
 | `/admin/menu` | menu CRUD | admin |
 | `/admin/orders` | order operations | admin |
 | `/admin/reports` | reports | admin |
+| `/admin/users` | `AdminUsersView` | admin |
 
 UI dùng `<script setup>`, Composition API, Tailwind utility và token ở `frontend/src/assets/theme.css`. Dùng lại `AppNavbar`, `BaseButton`, `BaseCard`, `FormField`, `RadioCard`, `SectionHeader`, `ProgressSteps` trước khi tạo component mới. Màu thương hiệu chính là caramel `#b45309`; font body Inter, heading Poppins.
 
@@ -301,10 +305,11 @@ Biến môi trường OpenAI/Weather đã được khai báo trong root/backend 
 - 2026-10-01: sau khi thêm context công khai, guest checkout và JSON 401 ổn định cho API, full backend suite **72 test / 292 assertion pass**; frontend full lint/build và Pint đều pass.
 - 2026-10-01: thêm notification database/polling/toast, upload ảnh, khóa rating và throttle gợi ý theo user; full backend suite **79 test / 323 assertion pass**, frontend lint/build và Pint pass.
 - 2026-10-02: chuyển Compose sang production-only qua `drinks.hmmh.click`, bỏ Vite dev/phpMyAdmin/host ports/source bind mounts và xóa scaffold Vue; production build tự lint frontend, full backend PHPUnit **79 test / 323 assertion pass**, 7 service healthy, API domain HTTP 200; MySQL giữ 50 món, 4 user và 8 đơn.
+- 2026-10-11: thêm quản lý tài khoản admin và tổng quan doanh thu. Full PHPUnit trong container Docker **87 test / 362 assertion pass** trên SQLite in-memory; Pint trên 15 file PHP thay đổi pass; frontend lint/production build pass. Các container đang chạy giữ nguyên, không chạy migration lên MySQL.
 
 ## 10. Test map hiện có
 
-Backend hiện có **73 feature test methods** (trong đó 1 test skeleton) + **6 unit test methods** (trong đó 1 placeholder), tổng cộng 79 test methods trong source.
+Backend hiện có **81 feature test methods** (trong đó 1 test skeleton) + **6 unit test methods** (trong đó 1 placeholder), tổng cộng 87 test methods trong source.
 
 | Test file | Bao phủ |
 |---|---|
@@ -318,6 +323,7 @@ Backend hiện có **73 feature test methods** (trong đó 1 test skeleton) + **
 | `ReportTest.php` | best seller/date filter/recommendation conversion |
 | `RecommendationTest.php` | public context, auth top 5, rate-limit theo user, validation, schema/reason/log, unavailable/empty fallback, top-10 và structured rerank |
 | `NotificationTest.php` | thông báo admin/customer/guest, ownership/read và cập nhật trạng thái đơn |
+| `AdminUserTest.php` | phân quyền, tìm/lọc, chỉnh sửa, vô hiệu hóa/thu hồi token, chặn phiên inactive, tự khóa và email trùng |
 | `EmbeddingJobTest.php` | nguồn embedding, ghi/xóa vector, record đã xóa |
 | `Unit/Services/EmbeddingServiceTest.php` | cosine edge cases, response hợp lệ và malformed |
 | `Unit/Services/WeatherServiceTest.php` | normalize/cache và provider failure fallback |
@@ -351,8 +357,9 @@ Khoảng trống test lớn nhất:
 - [x] **UC-08A — Admin CRUD menu**: role guard, create/update/availability/soft delete, upload/replace ảnh và UI không hiện mã UC. Bằng chứng: Drink controller/admin routes/AdminMenu + `DrinkTest`.
 - [x] **NOTIFY-01 — Thông báo đơn hàng online**: lưu database; chuông/panel/polling 10 giây/toast; admin nhận đơn mới, customer nhận đặt hàng thành công và trạng thái mới; ownership/read API. Bằng chứng: notification classes/controller/routes, `NotificationCenter.vue`, `NotificationTest`.
 - [x] **UC-09 — Admin quản lý đơn**: list/filter/detail/pagination và state machine. Bằng chứng: Order controller/AdminOrders + `AdminOrderTest`.
-- [x] **UC-10A — Báo cáo món bán chạy**: chỉ đếm order done, date range, quantity/revenue và điểm đánh giá trung bình theo khoảng lọc. Bằng chứng: `ReportController`, `AdminReportsView`, `ReportTest`; 2026-09-03 `ReportTest` 7/7 pass, lint riêng `AdminReportsView` và frontend build pass (full lint còn lỗi cũ ở `DrinkCard.vue`/`FormField.vue`).
-- [x] **UI-01 — Design system và 9 màn hình**: Tailwind tokens/components dùng chung, responsive layout, customer/admin views; menu rộng tối đa 1800px, dùng thẻ lớn 3 cột trên màn rộng, ảnh trọn khung và phân trang 12 món/trang. Bằng chứng: `frontend/src`, `doc/UI_DESIGN_TEMPLATE.md`; 2026-10-01 frontend lint/build pass.
+- [x] **UC-10A — Báo cáo món bán chạy và tổng quan doanh thu**: chỉ đếm đơn `done`; lọc ngày; tổng doanh thu toàn khoảng lọc độc lập với giới hạn danh sách món; bảng món bán chạy kèm số lượng, doanh thu và rating. Ngày mặc định từ đầu tháng đến hiện tại, riêng ngày đầu tháng lấy từ đầu tháng trước. Bằng chứng: `ReportController`, `AdminReportsView`, `ReportTest`; ngày 2026-10-11 full PHPUnit Docker 87 test/362 assertion pass, gồm kiểm tra tổng doanh thu và date range; frontend lint và production build pass.
+- [x] **AUTH-01 / UC-11 — Admin quản lý tài khoản**: tìm/lọc/phân trang; sửa tên/email/vai trò; kích hoạt/vô hiệu hóa; tài khoản inactive bị chặn đăng nhập và token bị thu hồi; bảo vệ admin hiện tại/admin active cuối cùng; không xóa cứng để giữ dữ liệu giao dịch. Bằng chứng: `AdminUserController`, `AdminUsersView`, migration `is_active`, `AdminUserTest`, SPEC và schema docs; ngày 2026-10-11 full PHPUnit Docker 87 test/362 assertion pass, Pint trên 15 file PHP thay đổi pass, frontend lint và production build pass.
+- [x] **UI-01 — Design system và 10 màn hình**: Tailwind tokens/components dùng chung, responsive layout, customer/admin views; menu rộng tối đa 1800px, dùng thẻ lớn 3 cột trên màn rộng, ảnh trọn khung và phân trang 12 món/trang. Bằng chứng: `frontend/src`, `doc/UI_DESIGN_TEMPLATE.md`; 2026-10-11 frontend lint/build pass.
 
 ### 11.2 Ưu tiên P0 — cần làm để hoàn thành tính năng cốt lõi
 
@@ -421,7 +428,6 @@ Khoảng trống test lớn nhất:
 
 - [x] **CLEAN-01 — Xóa scaffold/dev runtime không dùng**: đã xóa About/Hello/Welcome/icons/counter, Vite devtools, Docker Node dev service và phpMyAdmin khỏi stack production; frontend dùng `/api` cùng origin. Bằng chứng: `frontend/src`, `frontend/package.json`, `docker-compose.yml`; lint/build trong image site.
 - [ ] **DOC-02 — Viết README root chuẩn**: quick start, accounts demo, architecture link, troubleshooting, không chứa secret.
-- [ ] **AUTH-01 — Chốt quản lý user admin**: phần Actor nói admin quản lý user nhưng UC/API/UI chưa có; quyết định thêm use case hay bỏ khỏi phạm vi.
 - [ ] **AUTH-02 — Chốt chiến lược token/session**: hiện login/logout xóa toàn bộ token của user; quyết định single-device hay multi-device và sửa tests/docs.
 - [x] **MEDIA-01 — Ảnh món upload**: Admin tải JPG/PNG/WebP tối đa 5 MB, file lưu trong `backend/storage/app/public/drinks`, thay ảnh dọn file cũ, Resource trả endpoint stream public và UI có preview. Bằng chứng: migration `image_path`, upload request/controller/routes, `AdminMenuView`, `DrinkTest`.
 - [ ] **UI-02 — Self-host hoặc fallback font**: Google Fonts là network dependency; bảo đảm UI vẫn ổn offline/Docker demo.

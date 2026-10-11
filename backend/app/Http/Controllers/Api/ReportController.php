@@ -70,10 +70,24 @@ class ReportController extends Controller
                 'total_revenue' => (float) $row->total_revenue,
             ]);
 
+        $totalRevenue = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', OrderStatus::Done->value)
+            ->when(
+                $request->filled('from'),
+                fn ($query) => $query->whereDate('orders.created_at', '>=', $request->date('from')),
+            )
+            ->when(
+                $request->filled('to'),
+                fn ($query) => $query->whereDate('orders.created_at', '<=', $request->date('to')),
+            )
+            ->sum('order_items.subtotal');
+
         return response()->json([
             'data' => $rows,
             'meta' => [
                 'status_counted' => OrderStatus::Done->value,
+                'total_revenue' => (float) $totalRevenue,
                 'from' => $request->string('from')->toString() ?: null,
                 'to' => $request->string('to')->toString() ?: null,
                 'limit' => $limit,

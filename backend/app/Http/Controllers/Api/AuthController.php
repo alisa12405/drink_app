@@ -34,7 +34,7 @@ class AuthController extends Controller
     {
         $user = User::query()->where('email', $request->validated('email'))->first();
 
-        if ($user === null || ! Hash::check($request->validated('password'), $user->password)) {
+        if ($user === null || ! $user->is_active || ! Hash::check($request->validated('password'), $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Email hoặc mật khẩu không đúng.'],
             ]);

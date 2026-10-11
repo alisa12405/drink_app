@@ -29,6 +29,7 @@
 | `email_verified_at` | TIMESTAMP | YES | NULL | Thời điểm xác thực email |
 | `password` | VARCHAR(255) | NO | | Mật khẩu đã hash (bcrypt) |
 | `role` | ENUM('customer','admin') | NO | 'customer' | Phân quyền Customer/Admin |
+| `is_active` | BOOLEAN / TINYINT(1) | NO | true | Tài khoản đang hoạt động; tài khoản bị tắt không thể đăng nhập |
 | `remember_token` | VARCHAR(100) | YES | NULL | Token "remember me" của Laravel |
 | `created_at` | TIMESTAMP | YES | NULL | |
 | `updated_at` | TIMESTAMP | YES | NULL | |

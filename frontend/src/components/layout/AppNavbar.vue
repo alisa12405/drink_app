@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { Menu, X, ShoppingCart, Coffee, Heart, History, Utensils, ClipboardList, ChartColumn, LogOut, LogIn, UserPlus } from 'lucide-vue-next'
+import { Menu, X, ShoppingCart, Coffee, Heart, History, Utensils, ClipboardList, ChartColumn, Users, LogOut, LogIn, UserPlus } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import AppLogo from '@/components/ui/AppLogo.vue'
 import NotificationCenter from '@/components/layout/NotificationCenter.vue'
@@ -33,6 +33,7 @@ const links = computed(() => {
         { name: 'admin-menu', label: 'Quản lý menu', icon: Utensils },
         { name: 'admin-orders', label: 'Quản lý đơn hàng', icon: ClipboardList },
         { name: 'admin-reports', label: 'Báo cáo', icon: ChartColumn },
+        { name: 'admin-users', label: 'Quản lý tài khoản', icon: Users },
       )
     }
   } else {

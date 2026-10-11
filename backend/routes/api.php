@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DrinkController;
 use App\Http\Controllers\Api\NotificationController;
@@ -14,7 +15,7 @@ Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me', [AuthController::class, 'me']);
     });
@@ -26,9 +27,9 @@ Route::get('drinks/{drink}', [DrinkController::class, 'show']);
 Route::get('recommendation-context', [RecommendationController::class, 'context'])
     ->middleware('throttle:60,1');
 Route::post('orders', [OrderController::class, 'store'])
-    ->middleware(['auth.optional', 'throttle:10,1']);
+    ->middleware(['auth.optional', 'active', 'throttle:10,1']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('recommendations', [RecommendationController::class, 'index'])
         ->middleware('throttle:recommendations');
 
@@ -47,7 +48,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('ratings', [RatingController::class, 'index']);
 });
 
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'role:admin'])->prefix('admin')->group(function () {
+    Route::get('users', [AdminUserController::class, 'index']);
+    Route::put('users/{user}', [AdminUserController::class, 'update']);
+
     Route::get('drinks', [DrinkController::class, 'adminIndex']);
     Route::get('drinks/{drink}', [DrinkController::class, 'adminShow']);
     Route::post('drinks', [DrinkController::class, 'store']);

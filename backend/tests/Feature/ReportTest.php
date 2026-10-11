@@ -84,7 +84,13 @@ class ReportTest extends TestCase
             ->assertJsonPath('data.0.average_rating', null)
             ->assertJsonPath('data.0.total_revenue', 90000)
             ->assertJsonPath('data.1.drink_id', $cafe->id)
-            ->assertJsonPath('data.1.total_quantity', 1);
+            ->assertJsonPath('data.1.total_quantity', 1)
+            ->assertJsonPath('meta.total_revenue', 115000);
+
+        $this->getJson('/api/admin/reports/best-selling-drinks?limit=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total_revenue', 115000);
     }
 
     public function test_best_selling_drinks_respects_date_range_filter(): void
@@ -97,7 +103,8 @@ class ReportTest extends TestCase
 
         $this->getJson('/api/admin/reports/best-selling-drinks?from='.now()->subDay()->toDateString())
             ->assertOk()
-            ->assertJsonPath('data.0.total_quantity', 5);
+            ->assertJsonPath('data.0.total_quantity', 5)
+            ->assertJsonPath('meta.total_revenue', 150000);
     }
 
     public function test_best_selling_drinks_returns_average_rating_within_selected_period(): void
