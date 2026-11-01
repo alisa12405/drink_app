@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import {
   Clock3,
@@ -13,32 +14,51 @@ import {
   UserRoundCog,
   X,
 } from 'lucide-vue-next'
-import { preferencesApi, recommendationsApi } from '@/services/api'
+import { preferencesApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+import { useRecommendationStore } from '@/stores/recommendation'
 import { getCategoryEmoji } from '@/constants/drinkOptions'
+import DrinkDetailModal from '@/components/menu/DrinkDetailModal.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
 const cart = useCartStore()
+const recStore = useRecommendationStore()
 
-const context = ref(null)
-const recommendations = ref([])
-const meta = ref(null)
-const occasion = ref('')
-const coordinates = ref(null)
+const {
+  context,
+  recommendations,
+  meta,
+  occasion,
+  isContextLoading,
+  isLoading,
+  isLocating,
+  hasRequested,
+  errorMessage,
+  locationMessage,
+  cooldownSeconds,
+} = storeToRefs(recStore)
+
 const now = ref(new Date())
-const isContextLoading = ref(false)
-const isLoading = ref(false)
-const isLocating = ref(false)
-const hasRequested = ref(false)
-const errorMessage = ref('')
-const locationMessage = ref('')
 const showAuthModal = ref(false)
 const showPreferenceModal = ref(false)
-const cooldownSeconds = ref(0)
+const selectedItem = ref(null)
+const isDetailOpen = ref(false)
 let clockTimer
-let cooldownTimer
+
+function openDetail(item) {
+  selectedItem.value = item
+  isDetailOpen.value = true
+}
+
+function closeDetail() {
+  isDetailOpen.value = false
+}
+
+function handleAddFromDetail(payload) {
+  cart.addItem(payload.drink, payload.options)
+}
 
 const displayedTime = computed(() =>
   new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(now.value),
@@ -89,62 +109,6 @@ function briefSuggestion(recommendationContext) {
 
 const contextSuggestion = computed(() => briefSuggestion(context.value))
 
-function startCooldown(seconds = 60) {
-  cooldownSeconds.value = Math.max(1, Number(seconds) || 60)
-  window.clearInterval(cooldownTimer)
-  cooldownTimer = window.setInterval(() => {
-    cooldownSeconds.value = Math.max(0, cooldownSeconds.value - 1)
-    if (cooldownSeconds.value === 0) window.clearInterval(cooldownTimer)
-  }, 1000)
-}
-
-async function loadContext() {
-  isContextLoading.value = true
-  try {
-    const params = coordinates.value
-      ? { lat: coordinates.value.lat, lon: coordinates.value.lon }
-      : {}
-    const { data } = await recommendationsApi.context(params)
-    context.value = data.data ?? null
-  } catch {
-    context.value = {
-      suggestion: 'Bạn có thể xem menu và chọn món phù hợp với khẩu vị ngay lúc này.',
-      location_used: false,
-    }
-  } finally {
-    isContextLoading.value = false
-  }
-}
-
-function locateForWeather({ silent = false } = {}) {
-  if (!navigator.geolocation) {
-    locationMessage.value = 'Trình duyệt không hỗ trợ định vị; gợi ý chung vẫn sẵn sàng.'
-    return
-  }
-
-  isLocating.value = true
-  navigator.geolocation.getCurrentPosition(
-    async (position) => {
-      coordinates.value = {
-        lat: Number(position.coords.latitude.toFixed(5)),
-        lon: Number(position.coords.longitude.toFixed(5)),
-      }
-      locationMessage.value = 'Đã cập nhật thời tiết theo vị trí hiện tại.'
-      isLocating.value = false
-      await loadContext()
-    },
-    () => {
-      coordinates.value = null
-      locationMessage.value = silent
-        ? 'Bạn chưa chia sẻ vị trí; đang hiển thị gợi ý chung theo thời gian.'
-        : 'Không lấy được vị trí. Bạn vẫn có thể nhận gợi ý không dùng thời tiết.'
-      isLocating.value = false
-      void loadContext()
-    },
-    { enableHighAccuracy: false, timeout: 7000, maximumAge: 0 },
-  )
-}
-
 function hasDeclaredPreferences(preference) {
   return Boolean(
     preference?.updated_at ||
@@ -178,31 +142,7 @@ async function onRecommendationClick() {
 
 async function loadRecommendations() {
   showPreferenceModal.value = false
-  isLoading.value = true
-  hasRequested.value = true
-  errorMessage.value = ''
-
-  try {
-    const params = {}
-    if (occasion.value) params.occasion = occasion.value
-    if (coordinates.value) {
-      params.lat = coordinates.value.lat
-      params.lon = coordinates.value.lon
-    }
-
-    const { data } = await recommendationsApi.list(params)
-    recommendations.value = data.data ?? []
-    meta.value = data.meta ?? null
-  } catch (error) {
-    if (error.response?.status === 429) {
-      startCooldown(error.response.headers?.['retry-after'])
-    }
-    errorMessage.value =
-      error.response?.data?.message ||
-      'Chưa thể tải gợi ý lúc này. Menu bên dưới vẫn hoạt động bình thường.'
-  } finally {
-    isLoading.value = false
-  }
+  await recStore.requestRecommendations()
 }
 
 function goToPreferences() {
@@ -219,46 +159,58 @@ onMounted(() => {
   clockTimer = window.setInterval(() => {
     now.value = new Date()
   }, 30_000)
-  void loadContext()
-  locateForWeather({ silent: true })
+
+  // 1. Tự động kiểm tra quyền vị trí và cập nhật thời tiết nếu trình duyệt đã cho phép
+  void recStore.checkAndAutoLocate()
+
+  // 2. Tải ngữ cảnh ban đầu nếu chưa có trong cache
+  if (!context.value) {
+    void recStore.loadContext()
+  }
 })
 
 onBeforeUnmount(() => {
   window.clearInterval(clockTimer)
-  window.clearInterval(cooldownTimer)
 })
 </script>
 
 <template>
-  <section class="rounded-2xl border border-accent bg-secondary/40 px-5 py-5 text-secondary-foreground">
+  <section class="rounded-3xl border border-primary/20 bg-gradient-to-br from-card via-secondary/30 to-secondary/50 p-5 sm:p-6 shadow-xs text-secondary-foreground">
     <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-5">
-      <div class="flex items-start gap-3 min-w-0">
-        <div class="w-10 h-10 rounded-xl bg-card flex items-center justify-center shrink-0 shadow-sm">
-          <Sparkles :size="20" class="text-primary" />
+      <div class="flex items-start gap-3.5 min-w-0">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-primary-hover text-white flex items-center justify-center shrink-0 shadow-md shadow-primary/20">
+          <Sparkles :size="20" />
         </div>
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <h2 class="font-heading text-base font-semibold">Hôm nay uống gì?</h2>
+            <h2 class="font-heading text-lg font-bold text-foreground">Hôm nay uống gì?</h2>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+              AI Gợi ý cá nhân hóa
+            </span>
           </div>
-          <p class="text-sm text-muted-foreground mt-1 leading-relaxed">
+          <p class="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
             {{ isContextLoading && !context ? 'Đang chuẩn bị gợi ý…' : contextSuggestion }}
           </p>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 shrink-0">
-        <div class="rounded-xl border border-border bg-card px-3.5 py-2.5 flex items-center gap-2.5 min-w-40">
-          <Clock3 :size="17" class="text-primary" />
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 shrink-0">
+        <div class="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-xs px-4 py-2.5 flex items-center gap-3 min-w-44 shadow-2xs">
+          <div class="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-primary shrink-0">
+            <Clock3 :size="16" />
+          </div>
           <div>
-            <p class="text-[10px] uppercase tracking-wide text-muted-foreground">Thời gian</p>
-            <p class="text-sm font-semibold text-foreground">{{ displayedTime }}</p>
+            <p class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Thời gian</p>
+            <p class="text-sm font-bold text-foreground">{{ displayedTime }}</p>
           </div>
         </div>
-        <div class="rounded-xl border border-border bg-card px-3.5 py-2.5 flex items-center gap-2.5 min-w-44">
-          <CloudSun :size="18" class="text-primary" />
+        <div class="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-xs px-4 py-2.5 flex items-center gap-3 min-w-48 shadow-2xs">
+          <div class="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-primary shrink-0">
+            <CloudSun :size="17" />
+          </div>
           <div>
-            <p class="text-[10px] uppercase tracking-wide text-muted-foreground">Thời tiết</p>
-            <p class="text-sm font-semibold text-foreground">
+            <p class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Thời tiết</p>
+            <p class="text-sm font-bold text-foreground truncate">
               {{ isContextLoading ? 'Đang cập nhật…' : weatherLabel }}
             </p>
           </div>
@@ -266,48 +218,50 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="mt-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-t border-border/70 pt-4">
-      <div class="flex flex-col sm:flex-row gap-2">
+    <div class="mt-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-t border-border/60 pt-4">
+      <div class="flex flex-col sm:flex-row gap-2.5">
         <select
           v-if="auth.isAuthenticated"
           v-model="occasion"
-          class="h-10 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+          class="h-10 rounded-xl border border-border bg-card px-3 text-xs font-medium text-foreground outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-2xs"
           aria-label="Ngữ cảnh hiện tại"
         >
-          <option value="">Ngữ cảnh bất kỳ</option>
-          <option value="học tập hoặc làm việc">Học tập / làm việc</option>
-          <option value="sau khi vận động">Sau khi vận động</option>
-          <option value="thư giãn">Thư giãn</option>
-          <option value="gặp gỡ bạn bè">Gặp gỡ bạn bè</option>
+          <option value="">🎯 Ngữ cảnh bất kỳ</option>
+          <option value="học tập hoặc làm việc">📚 Học tập / làm việc</option>
+          <option value="sau khi vận động">🏃 Sau khi vận động</option>
+          <option value="thư giãn">☕ Thư giãn</option>
+          <option value="gặp gỡ bạn bè">👥 Gặp gỡ bạn bè</option>
         </select>
         <button
           type="button"
-          class="h-10 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+          class="h-10 rounded-xl border border-border bg-card px-3.5 text-xs font-semibold text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 shadow-2xs"
           :disabled="isLocating"
-          @click="locateForWeather()"
+          @click="recStore.locateForWeather()"
         >
           <LoaderCircle v-if="isLocating" :size="14" class="animate-spin" />
           <MapPin v-else :size="14" />
-          Cập nhật thời tiết theo vị trí
+          <span>Cập nhật vị trí thời tiết</span>
         </button>
       </div>
 
       <button
         type="button"
-        class="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+        class="h-11 rounded-xl bg-gradient-to-r from-primary to-primary-hover px-5 text-sm font-bold text-primary-foreground hover:shadow-md hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
         :disabled="isLoading || cooldownSeconds > 0"
         @click="onRecommendationClick"
       >
         <LoaderCircle v-if="isLoading" :size="16" class="animate-spin" />
         <RefreshCw v-else-if="hasRequested" :size="16" />
         <Sparkles v-else :size="16" />
-        {{
-          cooldownSeconds > 0
-            ? `Thử lại sau ${cooldownSeconds}s`
-            : hasRequested
-              ? 'Cập nhật top 5'
-              : 'Nhận gợi ý của bạn'
-        }}
+        <span>
+          {{
+            cooldownSeconds > 0
+              ? `Thử lại sau ${cooldownSeconds}s`
+              : hasRequested
+                ? 'Làm mới gợi ý'
+                : 'Nhận gợi ý cho bạn'
+          }}
+        </span>
       </button>
     </div>
 
@@ -315,26 +269,27 @@ onBeforeUnmount(() => {
       {{ locationMessage }}
     </p>
 
+    <!-- Skeletons when loading recommendations -->
     <div
       v-if="isLoading && recommendations.length === 0"
-      class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mt-4"
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5 mt-4"
     >
       <div
         v-for="index in 5"
         :key="index"
-        class="h-36 rounded-xl bg-card animate-pulse border border-border"
+        class="h-44 rounded-2xl bg-card animate-pulse border border-border"
       ></div>
     </div>
 
     <div
       v-else-if="errorMessage"
-      class="mt-4 rounded-xl bg-card border border-destructive/20 px-4 py-3 flex items-center justify-between gap-3"
+      class="mt-4 rounded-2xl bg-card border border-destructive/20 p-4 flex items-center justify-between gap-3 shadow-2xs"
     >
-      <p class="text-xs text-destructive">{{ errorMessage }}</p>
+      <p class="text-xs text-destructive font-medium">{{ errorMessage }}</p>
       <button
         v-if="auth.isAuthenticated && cooldownSeconds === 0"
         type="button"
-        class="text-xs font-semibold text-primary hover:underline shrink-0"
+        class="text-xs font-bold text-primary hover:underline shrink-0"
         @click="onRecommendationClick"
       >
         Thử lại
@@ -342,26 +297,53 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-else-if="recommendations.length > 0">
-      <div class="mt-4 rounded-xl border border-primary/15 bg-card px-4 py-3">
-        <span class="text-[10px] font-semibold rounded-full border border-border px-2 py-0.5 text-primary">
-          {{ strategyLabel }}
-        </span>
-        <p class="mt-2 text-sm leading-relaxed text-foreground">{{ meta?.reason_summary }}</p>
+      <div class="mt-5 rounded-2xl border border-primary/20 bg-card p-4 shadow-2xs">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-[10px] font-bold rounded-full bg-secondary border border-accent px-2.5 py-0.5 text-primary">
+            {{ strategyLabel }}
+          </span>
+          <span class="text-xs text-muted-foreground font-medium">Lý do gợi ý</span>
+        </div>
+        <p class="text-xs sm:text-sm leading-relaxed text-foreground font-medium">{{ meta?.reason_summary }}</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mt-3">
+      <!-- Top 5 Recommendations Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5 mt-4">
         <article
-          v-for="item in recommendations"
+          v-for="(item, itemIndex) in recommendations"
           :key="item.drink.id"
-          class="bg-card rounded-xl border border-border p-3 flex flex-col gap-3 min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+          class="bg-card rounded-2xl border border-border/80 p-3.5 flex flex-col gap-3 min-w-0 transition-all duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:border-primary/50 relative group cursor-pointer focus-visible:outline-2 focus-visible:outline-primary"
+          tabindex="0"
+          role="button"
+          :aria-label="`Xem chi tiết và lý do gợi ý món ${item.drink.name}`"
+          @click="openDetail(item)"
+          @keydown.enter="openDetail(item)"
         >
-          <div class="flex items-center gap-3">
-            <div class="w-16 h-16 rounded-lg bg-secondary overflow-hidden shrink-0 flex items-center justify-center">
+          <!-- Ranking Badge -->
+          <div class="absolute top-2.5 left-2.5 z-10">
+            <span
+              class="w-6 h-6 rounded-lg text-white font-heading font-extrabold text-[11px] flex items-center justify-center shadow-xs"
+              :class="[
+                itemIndex === 0
+                  ? 'bg-amber-500'
+                  : itemIndex === 1
+                    ? 'bg-stone-500'
+                    : itemIndex === 2
+                      ? 'bg-amber-700'
+                      : 'bg-primary/80',
+              ]"
+            >
+              #{{ itemIndex + 1 }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3 pt-5">
+            <div class="w-16 h-16 rounded-xl bg-secondary overflow-hidden shrink-0 flex items-center justify-center p-1">
               <img
                 v-if="item.drink.image_url"
                 :src="item.drink.image_url"
                 :alt="item.drink.name"
-                class="w-full h-full object-contain p-1"
+                class="w-full h-full object-contain group-hover:scale-105 transition-transform"
                 loading="lazy"
                 decoding="async"
               />
@@ -369,21 +351,27 @@ onBeforeUnmount(() => {
                 {{ getCategoryEmoji(item.drink.category) }}
               </span>
             </div>
-            <div class="min-w-0">
-              <p class="text-xs font-semibold text-foreground">{{ item.drink.name }}</p>
-              <span class="text-xs font-bold text-primary">
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                {{ item.drink.name }}
+              </p>
+              <span class="text-xs font-heading font-extrabold text-primary block mt-0.5">
                 {{ Number(item.drink.price).toLocaleString('vi-VN') }}đ
               </span>
             </div>
           </div>
-          <p class="text-xs text-muted-foreground leading-relaxed flex-1">{{ item.explanation }}</p>
+
+          <p class="text-xs text-muted-foreground leading-relaxed flex-1 line-clamp-2">
+            {{ item.explanation }}
+          </p>
+
           <button
             type="button"
-            class="w-full h-8 rounded-lg bg-secondary text-secondary-foreground text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-accent transition-colors"
-            @click="cart.addItem(item.drink)"
+            class="w-full h-8 rounded-xl bg-secondary text-secondary-foreground text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-primary hover:text-primary-foreground active:scale-95 transition-all duration-200 shadow-2xs cursor-pointer"
+            @click.stop="cart.addItem(item.drink)"
           >
             <Plus :size="13" />
-            Thêm vào giỏ
+            <span>Thêm vào giỏ</span>
           </button>
         </article>
       </div>
@@ -393,6 +381,15 @@ onBeforeUnmount(() => {
       Chưa có món phù hợp để gợi ý. Bạn vẫn có thể chọn từ menu bên dưới.
     </p>
   </section>
+
+  <!-- Drink Detail & AI Recommendation Explanation Modal -->
+  <DrinkDetailModal
+    :is-open="isDetailOpen"
+    :drink="selectedItem?.drink"
+    :recommendation="selectedItem"
+    @close="closeDetail"
+    @add="handleAddFromDetail"
+  />
 
   <Teleport to="body">
     <div

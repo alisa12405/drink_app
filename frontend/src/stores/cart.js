@@ -10,13 +10,21 @@ export const useCartStore = defineStore('cart', () => {
     items.value.reduce((sum, item) => sum + item.price * item.quantity, 0),
   )
 
-  function addItem(drink) {
+  function addItem(drink, options = {}) {
+    const sugar = options.sugar_level || '100'
+    const ice = options.ice_level || 'normal_ice'
+    const note = options.note || ''
+    const qty = Math.max(1, Number(options.quantity) || 1)
+
     const existing = items.value.find(
       (item) =>
-        item.drink_id === drink.id && item.sugar_level === '100' && item.ice_level === 'normal_ice',
+        item.drink_id === drink.id &&
+        item.sugar_level === sugar &&
+        item.ice_level === ice &&
+        item.note === note,
     )
     if (existing) {
-      existing.quantity += 1
+      existing.quantity += qty
       existing.image_url = drink.image_url || existing.image_url || null
       return
     }
@@ -26,10 +34,10 @@ export const useCartStore = defineStore('cart', () => {
       category: drink.category,
       image_url: drink.image_url || null,
       price: Number(drink.price),
-      quantity: 1,
-      sugar_level: '100',
-      ice_level: 'normal_ice',
-      note: '',
+      quantity: qty,
+      sugar_level: sugar,
+      ice_level: ice,
+      note,
     })
   }
 

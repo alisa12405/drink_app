@@ -36,16 +36,26 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4 py-10">
-    <div class="w-full max-w-[420px] flex flex-col items-center gap-6">
+  <div class="min-h-screen bg-gradient-to-br from-secondary/40 via-background to-secondary/20 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+    <!-- Ambient Glow Circles -->
+    <div
+      class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-accent/20 blur-3xl pointer-events-none"
+      aria-hidden="true"
+    ></div>
+
+    <div class="w-full max-w-[440px] flex flex-col items-center gap-7 relative z-10">
       <AppLogo size="lg" />
 
-      <BaseCard class="w-full" padding="lg">
+      <BaseCard class="w-full shadow-lg border-border/80" padding="lg">
         <form class="flex flex-col gap-5" @submit.prevent="onSubmit">
           <div>
-            <h1 class="font-heading font-bold text-2xl text-foreground">Đăng nhập</h1>
-            <p class="text-sm text-muted-foreground mt-1">
-              Chào mừng quay lại! Đăng nhập để đặt món yêu thích của bạn.
+            <h1 class="font-heading font-extrabold text-2xl text-foreground">Đăng nhập</h1>
+            <p class="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+              Chào mừng bạn quay lại! Đăng nhập để nhận gợi ý món cá nhân hóa.
             </p>
           </div>
 
@@ -67,23 +77,25 @@ async function onSubmit() {
             required
           />
 
-          <p v-if="errorMessage" class="text-sm text-destructive bg-destructive-bg rounded-xl px-3.5 py-2.5" role="alert">
+          <p v-if="errorMessage" class="text-sm text-destructive bg-destructive-bg border border-destructive/20 rounded-xl px-3.5 py-2.5" role="alert">
             {{ errorMessage }}
           </p>
 
-          <BaseButton type="submit" :disabled="isSubmitting">
+          <BaseButton type="submit" :disabled="isSubmitting" class="shadow-sm shadow-primary/20">
             {{ isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập' }}
           </BaseButton>
 
-          <p class="text-sm text-muted-foreground text-center">
-            Chưa có tài khoản?
-            <RouterLink :to="{ name: 'register' }" class="text-primary font-semibold hover:underline">
-              Đăng ký ngay
+          <div class="flex flex-col gap-2 pt-2 border-t border-border/60">
+            <p class="text-xs text-muted-foreground text-center">
+              Chưa có tài khoản?
+              <RouterLink :to="{ name: 'register' }" class="text-primary font-bold hover:underline ml-1">
+                Đăng ký ngay
+              </RouterLink>
+            </p>
+            <RouterLink :to="{ name: 'home' }" class="text-xs text-muted-foreground text-center hover:text-primary transition-colors font-medium">
+              ← Tiếp tục xem menu không cần đăng nhập
             </RouterLink>
-          </p>
-          <RouterLink :to="{ name: 'home' }" class="text-sm text-muted-foreground text-center hover:text-primary hover:underline">
-            Tiếp tục xem menu không cần đăng nhập
-          </RouterLink>
+          </div>
         </form>
       </BaseCard>
     </div>

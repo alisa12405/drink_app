@@ -49,12 +49,20 @@ Màu bổ trợ dùng trực tiếp trong `App.tsx` (không phải token nhưng 
 - Vàng/cam đánh giá sao: `text-amber-500`.
 - Xám trung tính cho text phụ: `text-gray-400/500/600`, viền `border-gray-100/200`.
 
-### 2.2 Typography
+### 2.2 Typography & Animations
 
-- Font chữ nội dung: **Inter** (400/500/600/700).
-- Font tiêu đề/logo: **Poppins** (600/700) — dùng cho `<h1>`, `<h2>`, tên thương hiệu, tiêu đề section.
-- Cỡ chữ gốc: `16px` (`--font-size`), heading dùng `font-weight: 500` mặc định, override bằng Tailwind utility khi cần đậm hơn (`font-bold`).
-- Import Google Fonts: `Inter:wght@400;500;600;700` và `Poppins:wght@600;700`.
+- Font chữ hiển thị chuẩn tiếng Việt 100%: **Plus Jakarta Sans** (tiêu đề/heading/logo) kết hợp **Be Vietnam Pro** (nội dung/body và bổ trợ).
+  - Khắc phục hoàn toàn lỗi vỡ/mất nét dấu tiếng Việt (huyền, sắc, hỏi, ngã, nặng, ư, ơ, đ) gặp phải với Poppins trước đây.
+  - Được preconnect và load đầy đủ các weights 300, 400, 500, 600, 700, 800 từ Google Fonts.
+- Font tiêu đề (`--font-heading`): `'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, sans-serif`.
+- Font thân trang (`--font-sans`): `'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif`.
+- Cỡ chữ gốc: `16px` (`--font-size`), heading dùng `font-weight: 700/800` với `letter-spacing: -0.015em`.
+- **Hiệu ứng chuyển cảnh mượt mà**:
+  - Chuyển trang (`page-fade`): router view chuyển trang trượt ngang trái/phải mượt mà 28px (`translateX`) kèm mờ dần (`mode="out-in"`).
+  - Giỏ hàng (`CartDrawer`): hiệu ứng trượt slide-over mượt mà từ mép phải (`translateX(100%)` → `0`) kèm nền mờ backdrop fade.
+  - Đổi danh mục đồ uống (`grid-fade`): lưới món fade out/in và các thẻ món lướt vào dạng bậc thang (`staggered cascading wave`) với độ trễ 30ms mỗi thẻ.
+  - Điều hướng tab & menu sidebar: animation trượt từ cạnh trái/phải (`drawer-slide`) với nền mờ backdrop.
+  - Hover & active tactile: nút và thẻ có hiệu ứng co/giãn phản hồi xúc giác (`active:scale-95`).
 
 ### 2.3 Bo góc & bóng đổ (pattern lặp lại toàn bộ template)
 
@@ -71,19 +79,20 @@ Màu bổ trợ dùng trực tiếp trong `App.tsx` (không phải token nhưng 
 
 | Component | Vai trò | Đặc điểm chính cần giữ lại |
 |---|---|---|
-| `KitchenLogo` | Logo thương hiệu | Icon tròn màu primary + tên brand (font Poppins) + tagline nhỏ chữ hoa. Dùng chung cho mọi trang. |
-| `AppNavbar` | Header sticky và sidebar chức năng bên trái | Nút mở sidebar ở mọi kích thước, logo, chuông và giỏ hàng; guest có nút đăng ký chữ trắng. Sidebar chứa link theo role, mục hiện tại có nền kem/viền caramel và `aria-current`, có thông tin user và đăng xuất. Đóng khi chọn link, bấm nền, nút đóng hoặc Escape; khóa cuộn nền và giữ focus trong sidebar. |
-| `HeroBanner` | Banner giới thiệu quán, ảnh nền full-width + card thông tin nổi (overlay bên trái) | Card nổi chứa: logo nhỏ, tên quán, trạng thái mở cửa (chấm xanh), thời gian chuẩn bị, đơn tối thiểu, rating sao. **Dự án**: có thể đơn giản hoá thành banner tĩnh giới thiệu app + lời chào user đã đăng nhập. |
-| `TabBar` | Thanh dưới navbar: chọn hình thức nhận đồ + địa điểm + ô tìm kiếm | **Điều chỉnh**: bỏ tab Delivery/Pickup/Dine-in (quán tại chỗ không giao hàng) và chọn khu vực; giữ lại ô tìm kiếm món. |
-| `CategorySidebar` | Sidebar trái danh sách danh mục (icon + label), có trạng thái active | Ánh xạ trực tiếp với filter category của UC-03 (menu đồ uống). |
-| `FoodCard` (→ `DrinkCard`) | Thẻ món ăn dạng lưới: ảnh, badge (vd "Popular"/"best_seller"), tên, mô tả rút gọn, giá, nút "+" thêm vào giỏ | Ánh xạ trực tiếp UC-03; badge có thể map với `tags` của `drinks` (vd `best_seller`). |
-| `MenuOrderSummary` (cart sidebar) | Panel giỏ hàng cố định bên phải trang menu | Danh sách item (ảnh nhỏ, tên, giá, stepper +/-, nút xoá), trạng thái rỗng có icon + hướng dẫn, phần tổng tiền (subtotal/phí/tổng), nút Checkout lớn disable khi giỏ rỗng. |
-| `ProgressSteps` | Thanh 3 bước Cart → Checkout → Complete, dùng trên trang Checkout/Confirmation | Bước đã qua/hiện tại tô màu primary, bước sau màu xám; có đường nối giữa các bước. |
-| `SectionHeader` | Tiêu đề đánh số cho từng khối form trong Checkout (1. Thông tin liên hệ, 2. ...) | Số thứ tự trong hình tròn primary + tiêu đề in đậm font Poppins. |
-| `FormField` | Input có label nhỏ phía trên | Style input dùng chung toàn app (border-gray-200, rounded-xl, focus ring cam). |
-| Radio-card selector (order type / payment method) | Nhóm lựa chọn dạng thẻ bo viền, có radio dot | Dùng cho chọn "size" hoặc phương thức thanh toán giả lập nếu cần; border đổi màu cam + nền cam nhạt khi được chọn. |
-| Promo code input | Ô nhập mã giảm giá + nút Apply | **Ngoài phạm vi SPEC hiện tại** (chưa có mã giảm giá) — đánh dấu "có thể làm sau", không ưu tiên. |
-| `ConfirmationPage` | Trang xác nhận đặt hàng thành công | Icon check tròn lớn, tiêu đề, mô tả thời gian ước tính, mã đơn hàng, nút quay về Menu. |
+| `AppLogo` | Logo thương hiệu vector SVG | Logo hình ly đồ uống cách điệu (sóng sữa/trà, trân châu boba, đá lạnh, ống hút, lá trà tươi và ngôi sao AI thông minh), phối dải màu caramel/amber. Dùng chung cho header, favicon thẻ trình duyệt (`favicon.svg`) và trang xác thực. |
+| `AppNavbar` | Header sticky glassmorphism và sidebar điều hướng | Header bán trong suốt (`backdrop-blur-md`), nút mở sidebar chức năng, logo SVG, link nhanh trên desktop (Menu/Sở thích/Lịch sử/Quản trị), chuông thông báo, user chip và nút giỏ hàng kèm số lượng món. Sidebar chứa link theo role, tự đóng khi chọn mục hoặc bấm Escape. |
+| `WelcomeBanner` | Banner giới thiệu & chào mừng | Nền gradient caramel đậm đà, hiệu ứng ánh sáng mờ, lời chào cá nhân hóa, huy hiệu tính năng (pha chế 5–10p, 100% nguyên liệu chọn lọc) và đồ họa ly đồ uống vector cách điệu. |
+| `RecommendationBanner` | Khối gợi ý AI cá nhân hóa | Thẻ thời gian và thời tiết theo vị trí với kính mờ (glassmorphism); chọn ngữ cảnh (học tập, thư giãn...); nút gọi gợi ý top 5; hiển thị câu lý do tổng quát và lưới 5 món có thứ hạng (#1, #2, #3...) kèm lý do riêng và nút thêm nhanh vào giỏ. |
+| `CategorySidebar` | Danh mục món uống | Lọc theo danh mục (Tất cả, Trà sữa, Cà phê, Nước ép...); desktop là cột cố định có header, mobile/tablet là thanh cuộn ngang mượt mà. |
+| `DrinkCard` | Thẻ món ăn dạng lưới (tối thiểu 3–4 cột trên desktop) | Ảnh món phóng to mượt khi rê chuột; huy hiệu "Bán chạy" (flame), huy hiệu nhiệt độ (Nóng/Đá/Nóng&Đá); tên món, mô tả 2 dòng, calo; giá nổi bật và nút "+ Chọn món" tactile. |
+| `CartDrawer` | Giỏ hàng dạng slide-over drawer (trượt từ phải) | Thay thế panel giỏ hàng cố định chiếm chỗ; mở từ nút giỏ hàng trên navbar hoặc thanh giỏ hàng nổi phía dưới. Hiển thị danh sách món (ảnh, tên, stepper tăng giảm, nút xóa), tổng tiền, ghi chú tùy chỉnh và nút thanh toán lớn. |
+| `FloatingCartPill` | Thanh giỏ hàng nổi dưới chân trang | Xuất hiện tự động khi giỏ có món (`totalQuantity > 0`) trên trang menu, cho phép mở nhanh `CartDrawer` mà không che khuất danh sách sản phẩm. |
+| `DrinkDetailModal` | Thẻ modal xem chi tiết món & lý do gợi ý AI | Khi bấm vào bất kỳ món gợi ý hoặc món trong menu: hiển thị trọn vẹn 100% tên món, mô tả, ảnh lớn, huy hiệu nhiệt độ, calo; khối nổi bật "Lý do AI gợi ý món này cho bạn" (không bị cắt chữ); bộ chọn mức đường (0–100%), mức đá, ghi chú riêng và bộ đếm số lượng kèm nút thêm vào giỏ. |
+| `ProgressSteps` | Thanh 3 bước Cart → Checkout → Complete | Dùng trên trang Checkout/Confirmation; bước đã qua/hiện tại tô màu primary, bước sau màu xám; có đường nối giữa các bước. |
+| `SectionHeader` | Tiêu đề đánh số cho từng khối form trong Checkout | Số thứ tự trong hình tròn primary + tiêu đề in đậm font Poppins. |
+| `FormField` | Input có label nhỏ phía trên | Style input dùng chung toàn app (border-border, rounded-xl, focus ring primary). |
+| `RadioCard` | Nhóm lựa chọn dạng thẻ bo viền | Dùng cho chọn hình thức nhận đồ (Dùng tại quán / Mang đi) hoặc phương thức thanh toán giả lập. |
+| `ConfirmationPage` | Trang xác nhận đặt hàng thành công | Icon check tròn lớn, tiêu đề, mã đơn hàng, tổng tiền, nút quay về Menu hoặc xem Lịch sử. |
 
 ---
 
@@ -92,13 +101,16 @@ Màu bổ trợ dùng trực tiếp trong `App.tsx` (không phải token nhưng 
 ### 4.1 Trang Menu (Home)
 
 ```
-AppNavbar (nút mở sidebar | logo | thông báo / đăng ký | giỏ hàng)
-HeroBanner (ảnh nền + card thông tin quán, có thể lược bỏ/rút gọn)
-TabBar (giữ lại: ô tìm kiếm món; bỏ: tab hình thức nhận đồ + chọn khu vực)
-┌───────────────┬─────────────────────────────┬───────────────────┐
-│ CategorySidebar│  Grid DrinkCard (2-3 cột)   │  Cart sidebar      │
-│ (danh mục)     │  theo category đang chọn     │  (MenuOrderSummary)│
-└───────────────┴─────────────────────────────┴───────────────────┘
+AppNavbar (drawer toggle | SVG logo | nav desktop links | thông báo / auth | giỏ hàng)
+WelcomeBanner (hero banner với thông điệp & minh họa đồ uống vector)
+RecommendationBanner (AI Gợi ý cá nhân hóa + thời tiết & thời gian thời gian thực)
+┌────────────────┬─────────────────────────────────────────────────────────┐
+│ CategorySidebar│ Toolbar: Tiêu đề danh mục, số lượng món & ô tìm kiếm    │
+│ (danh mục món) ├─────────────────────────────────────────────────────────┤
+│                │ Grid DrinkCard: Tối thiểu 3–4 món một hàng trên desktop │
+│                │ (md:grid-cols-3, xl:grid-cols-4)                        │
+└────────────────┴─────────────────────────────────────────────────────────┘
+[Floating Cart Pill khi có món trong giỏ] ──> mở CartDrawer (slide-over trượt từ phải)
 ```
 
 ### 4.2 Trang Giỏ hàng / Checkout
@@ -106,11 +118,11 @@ TabBar (giữ lại: ô tìm kiếm món; bỏ: tab hình thức nhận đồ + 
 ```
 AppNavbar dùng chung + hàng ProgressSteps riêng bên dưới
 ┌───────────────────────────────────────┬───────────────────────┐
-│ 1. Thông tin liên hệ (SectionHeader)  │  Order Summary panel  │
-│ 2. Loại đơn (dine-in/mang đi — thay   │  - danh sách món       │
-│    cho Delivery/Pickup gốc)           │  - (bỏ) mã giảm giá    │
-│ 3. (bỏ) Địa chỉ giao hàng             │  - subtotal/thuế/tổng  │
-│ 4. Phương thức thanh toán (giả lập)   │  - nút "Đặt hàng"      │
+│ 1. Món đã chọn (SectionHeader)        │  Order Summary panel  │
+│ 2. Thông tin khách hàng               │  - danh sách món       │
+│ 3. Hình thức nhận đồ (dine-in/mang đi)│  - subtotal/thuế/tổng  │
+│ 4. Ghi chú thêm                       │  - nút "Đặt hàng"      │
+│ 5. Phương thức thanh toán (giả lập)   │                        │
 │ Link "Quay lại menu"                  │                        │
 └───────────────────────────────────────┴───────────────────────┘
 ```
@@ -127,12 +139,12 @@ mô tả ngắn, mã đơn hàng, nút "Về trang Menu"
 
 ## 5. Bảng ánh xạ: Template → Use case dự án → View Vue
 
-| Trang/Component mẫu | Use case liên quan | View Vue hiện có | Việc cần làm |
+| Trang/Component mẫu | Use case liên quan | View Vue hiện có | Trạng thái & Tính năng |
 |---|---|---|---|
-| Navbar, HeroBanner, TabBar, CategorySidebar, FoodCard, MenuOrderSummary | UC-03 (xem menu), UC-04 (gợi ý), UC-05 (đặt hàng) | ✅ `HomeView.vue` dùng `AppNavbar`, `WelcomeBanner`, `RecommendationBanner`, `CategorySidebar`, `DrinkCard`, `CartSidebar` | Public menu + giỏ; banner ban đầu chỉ có giờ/thời tiết/gợi ý chung, top 5 + lý do tải khi bấm và yêu cầu đăng nhập. |
-| ProgressSteps, SectionHeader, FormField, radio-card, Order Summary | UC-05 (đặt đồ uống, thanh toán giả lập) | ✅ `CheckoutView.vue` (route `/checkout`, Bước 3) — dùng `ProgressSteps`, `SectionHeader`, `FormField`, `RadioCard`, panel "Đơn hàng của bạn" | Đã xong. Giỏ hàng dùng chung qua Pinia store `stores/cart.js` giữa `HomeView` và `CheckoutView`. |
-| ConfirmationPage | Kết thúc UC-05 | ✅ Đã làm — là trạng thái `step === 'confirmed'` ngay trong `CheckoutView.vue` (không tách route riêng, giống cách template gốc chuyển trạng thái trong cùng 1 luồng) | Đã xong (gộp vào Bước 3). |
-| — (không có mẫu tương ứng) | UC-01 Đăng ký/đăng nhập | `LoginView.vue` | Không có trong template — thiết kế theo cùng bộ token màu/fonts (card trắng bo góc, nút cam, input rounded-xl) để đồng bộ. |
+| Navbar, HeroBanner, CategorySidebar, DrinkCard, CartDrawer | UC-03 (menu), UC-04 (gợi ý), UC-05 (đặt hàng) | ✅ `HomeView.vue` dùng `AppNavbar`, `WelcomeBanner`, `RecommendationBanner`, `CategorySidebar`, `DrinkCard`, `CartDrawer` | Lưới sản phẩm tối thiểu 3–4 món/hàng trên desktop; ô tìm kiếm món; giỏ hàng slide-over drawer thay thế panel cố định; thanh giỏ hàng nổi phía dưới. |
+| ProgressSteps, SectionHeader, FormField, radio-card, Order Summary | UC-05 (đặt đồ uống, thanh toán giả lập) | ✅ `CheckoutView.vue` (route `/checkout`) | Tùy chỉnh mức đường, mức đá, ghi chú cho từng món; chọn hình thức nhận đồ (tại quán/mang đi); đặt hàng bằng tài khoản hoặc tên khách vãng lai. |
+| ConfirmationPage | Kết thúc UC-05 | ✅ Trạng thái `step === 'confirmed'` ngay trong `CheckoutView.vue` | Hiển thị mã đơn, tổng tiền, điều hướng về trang chủ hoặc lịch sử đơn hàng. |
+| — (không có mẫu tương ứng) | UC-01 Đăng ký/đăng nhập | `LoginView.vue`, `RegisterView.vue` | Thiết kế giao diện hiện đại với nền ambient glow, card bo góc, SVG logo và thông báo lỗi trực quan. |
 | — | UC-02 Sở thích | `PreferenceView.vue` | Dùng lại pattern `FormField` + radio-card (mức đường/đá) + `SectionHeader`. |
 | Danh sách item dạng card + rating | UC-06 (lịch sử đơn), UC-07 (đánh giá) | `OrderHistoryView.vue` | Dùng pattern card đơn hàng tương tự Order Summary; thêm sao đánh giá (đã có), style lại theo token màu. |
 | — (khác domain, cần thiết kế riêng) | UC-08/09/10/11 (Admin) | `AdminMenuView.vue`, `AdminOrdersView.vue`, `AdminReportsView.vue`, `AdminUsersView.vue` | Template không có trang admin — tự thiết kế bảng dữ liệu (table), filter, form dùng chung token màu/border/radius cho nhất quán; có thể tham khảo thêm `components/ui/table.tsx`, `card.tsx` trong `template_frontend` để lấy ý tưởng bố cục bảng/thẻ. |

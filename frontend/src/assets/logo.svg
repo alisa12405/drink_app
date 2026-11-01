@@ -1,1 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 261.76 226.69"><path d="M161.096.001l-30.225 52.351L100.647.001H-.005l130.877 226.688L261.749.001z" fill="#41b883"/><path d="M161.096.001l-30.225 52.351L100.647.001H52.346l78.526 136.01L209.398.001z" fill="#34495e"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="sd-bg-asset" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#92400e"/>
+    </linearGradient>
+    <linearGradient id="sd-drink-asset" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fed7aa"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="sd-leaf-asset" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Squircle with Soft Glow -->
+  <rect width="100" height="100" rx="28" fill="url(#sd-bg-asset)"/>
+  
+  <!-- Subtle Inner Ring -->
+  <rect x="3" y="3" width="94" height="94" rx="25" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1.5" fill="none"/>
+
+  <!-- Straw -->
+  <path d="M57 20 L66 10" stroke="#fef3c7" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M50 29 L57 20" stroke="#fef3c7" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- Cup Rim -->
+  <rect x="29" y="27" width="42" height="5" rx="2.5" fill="#ffffff"/>
+
+  <!-- Cup Body -->
+  <path d="M33 32 L39 74 Q40 80 46 80 L54 80 Q60 80 61 74 L67 32 Z" fill="#ffffff" fill-opacity="0.22"/>
+  
+  <!-- Drink Liquid Wave -->
+  <path d="M35 46 Q43 43 50 46 T65 46 L61 74 Q60 79 55 79 L45 79 Q40 79 39 74 Z" fill="url(#sd-drink-asset)"/>
+
+  <!-- Boba Pearls -->
+  <circle cx="44" cy="71" r="3.5" fill="#78350f"/>
+  <circle cx="53" cy="72" r="3.5" fill="#78350f"/>
+  <circle cx="48" cy="65" r="3" fill="#78350f"/>
+  <circle cx="56" cy="64" r="2.8" fill="#78350f"/>
+
+  <!-- Ice Cube -->
+  <rect x="42" y="50" width="8" height="8" rx="2" fill="#ffffff" fill-opacity="0.45" transform="rotate(12 42 50)"/>
+
+  <!-- Tea Leaf Accent (Freshness) -->
+  <path d="M68 22 C68 22 76 19 78 26 C78 33 71 33 68 33 C67 29 67 25 68 22 Z" fill="url(#sd-leaf-asset)"/>
+  <path d="M69 28 C73 26 75 24 75 24" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/>
+
+  <!-- Smart Sparkle (AI Symbol) -->
+  <path d="M26 21 L27.5 24.5 L31 26 L27.5 27.5 L26 31 L24.5 27.5 L21 26 L24.5 24.5 Z" fill="#fef08a"/>
+</svg>
