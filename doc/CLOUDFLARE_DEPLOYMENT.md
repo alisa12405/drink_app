@@ -1,76 +1,77 @@
-# Trien khai `drinks.hmmh.click` qua Cloudflare Tunnel
+# Triển khai `drinks.hmmh.click` qua Cloudflare Tunnel
 
-> Day la ghi chu cho ten mien hien co. Khi trien khai rieng tu GitHub, xem [DEPLOY.md](../DEPLOY.md) va thay hostname bang ten mien ban quan ly. Chay cac lenh tu root repository.
+> Đây là ghi chú triển khai cho tên miền hiện có. Khi triển khai riêng từ GitHub, xem [DEPLOY.md](../DEPLOY.md) và thay hostname bằng tên miền bạn quản lý. Chạy các lệnh từ root repository.
 
-Kien truc trien khai:
+Kiến trúc triển khai:
 
 ```text
 Internet -> Cloudflare -> cloudflared -> site (Nginx)
-                                      |-> /       Vue static build
-                                      `-> /api/*  Laravel Nginx/PHP-FPM
+                                       ├── /       Vue static build
+                                       └── /api/*  Laravel Nginx/PHP-FPM
 ```
 
-Cloudflare Tunnel chi tao ket noi outbound tu may chay Docker. Khong can mo port
-80/443 tren router, va khong tro A record vao IP nha/may chu.
+Cloudflare Tunnel chỉ tạo kết nối outbound từ máy chạy Docker. Không cần mở port 80/443 trên router, và không trỏ A record vào IP nhà/máy chủ.
 
-## 1. Tao tunnel va public hostname
+## 0. Trạng thái vận hành hiện tại
 
-1. Dam bao domain `hmmh.click` dang dung nameserver cua Cloudflare.
-2. Vao Cloudflare dashboard -> **Networking -> Tunnels** -> tao tunnel moi, vi du
-   `drink-app`.
-3. Chon cach cai dat Docker va sao chep token trong lenh mau. Chi lay chuoi token
-   sau `--token`; khong commit token vao Git.
-4. Trong tunnel, them **Published application**:
+Hệ thống đang hoạt động trên Docker build kết nối qua Cloudflare Tunnel:
+- **Tên miền**: [https://drinks.hmmh.click](https://drinks.hmmh.click)
+- **Tài khoản quản trị viên (Admin)**:
+  - **Email**: `admin1@drinks.hmmh.click`
+  - **Mật khẩu**: `Admin@3618`
+  - **Vai trò**: `admin`
+  - **Truy cập**: `/admin/users` (quản trị tài khoản), `/admin/menu` (thực đơn và ảnh món), `/admin/orders` (xử lý đơn), `/admin/reports` (báo cáo doanh thu).
+
+## 1. Tạo tunnel và public hostname
+
+1. Đảm bảo domain `hmmh.click` đang dùng nameserver của Cloudflare.
+2. Vào Cloudflare dashboard -> **Networking -> Tunnels** -> tạo tunnel mới, ví dụ `drink-app`.
+3. Chọn cách cài đặt Docker và sao chép token trong lệnh mẫu. Chỉ lấy chuỗi token sau `--token`; không commit token vào Git.
+4. Trong tunnel, thêm **Published application**:
    - Subdomain: `drinks`
    - Domain: `hmmh.click`
    - Type: `HTTP`
    - Service URL: `http://site:80`
 
-Cloudflare se tao CNAME cho `drinks.hmmh.click`. Neu dashboard bao ban ghi da ton
-tai, xoa ban ghi A/AAAA/CNAME cu cua chinh `drinks` roi them Published application
-lai. Khong xoa cac ban ghi khac cua domain.
+Cloudflare sẽ tạo CNAME cho `drinks.hmmh.click`. Nếu dashboard báo bản ghi đã tồn tại, xóa bản ghi A/AAAA/CNAME cũ của chính `drinks` rồi thêm Published application lại. Không xóa các bản ghi khác của domain.
 
-## 2. Cau hinh may chay Docker
+## 2. Cấu hình máy chạy Docker
 
-Trong file `.env` o root project, them/cap nhat:
+Trong file `.env` ở root project, thêm/cập nhật:
 
 ```dotenv
 APP_URL=https://drinks.hmmh.click
 CLOUDFLARE_TUNNEL_TOKEN=<token-cua-tunnel>
 ```
 
-File `.env` da nam trong `.gitignore`. Khong dat token that vao `.env.example`,
-Dockerfile, anh chup man hinh hay commit.
+File `.env` đã nằm trong `.gitignore`. Không đặt token thật vào `.env.example`, Dockerfile, ảnh chụp màn hình hay commit.
 
-## 3. Build va khoi dong
+## 3. Build và khởi động
 
 ```bash
 make deploy
 ```
 
-Neu may khong co `make`:
+Nếu máy không có `make`:
 
 ```bash
 docker compose up -d --build --remove-orphans
 ```
 
-Stack production khong publish cong local. Xem trang thai sau khi build:
+Stack production không publish cổng local. Xem trạng thái sau khi build:
 
 ```bash
 docker compose ps
 docker compose logs -f site cloudflared
 ```
 
-Khi tunnel bao `Healthy`, truy cap `https://drinks.hmmh.click`.
+Khi tunnel báo `Healthy`, truy cập `https://drinks.hmmh.click`.
 
-## 4. Xu ly loi nhanh
+## 4. Xử lý lỗi nhanh
 
-- Cloudflare `1016`/route khong vao duoc app: kiem tra Service URL phai la
-  `http://site:80`, khong phai URL public va khong phai `localhost`.
-- Tunnel restart lien tuc: token trong `.env` dang thieu/sai/da bi rotate.
-- Cloudflare khong cho them hostname: `drinks` dang co A/AAAA/CNAME cu.
-- Trang hien nhung API loi: chay `docker compose logs app webserver site` va kiem
-  tra `APP_URL=https://drinks.hmmh.click`.
-- Chi de public service `site`; khong tao Published application cho MySQL, Redis
-  hoac backend noi bo.
-- Sau khi sua code, chay lai `make deploy`; production khong bind mount source.
+- Cloudflare `1016`/route không vào được app: kiểm tra Service URL phải là `http://site:80`, không phải URL public và không phải `localhost`.
+- Tunnel restart liên tục: token trong `.env` đang thiếu/sai/đã bị rotate.
+- Cloudflare không cho thêm hostname: `drinks` đang có A/AAAA/CNAME cũ.
+- Trang hiện nhưng API lỗi: chạy `docker compose logs app webserver site` và kiểm tra `APP_URL=https://drinks.hmmh.click`.
+- Chỉ để public service `site`; không tạo Published application cho MySQL, Redis hoặc backend nội bộ.
+- Sau khi sửa code, chạy lại `make deploy`; production không bind mount source.

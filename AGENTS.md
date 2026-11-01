@@ -1,6 +1,7 @@
 # Smart Drink — Project Guide & Task Tracker for Coding Agents
 
-> Cập nhật theo lần rà soát repository ngày **2026-09-03**, branch `ui`, commit `b569f74`.
+> Cập nhật theo lần rà soát repository ngày **2026-11-01**, branch `fix`, commit `a927fa0`.
+> Dự án đang chạy thực tế trên **Docker build** tại [https://drinks.hmmh.click](https://drinks.hmmh.click) với tài khoản quản trị `admin1@drinks.hmmh.click` / `Admin@3618`.
 > Đây là điểm bắt đầu dành cho mọi coding agent. Đọc file này trước khi sửa code, sau đó đọc tài liệu và file nguồn liên quan trực tiếp đến task.
 
 ## 1. Mục tiêu và cách dùng tài liệu
@@ -306,6 +307,7 @@ Biến môi trường OpenAI/Weather đã được khai báo trong root/backend 
 - 2026-10-01: thêm notification database/polling/toast, upload ảnh, khóa rating và throttle gợi ý theo user; full backend suite **79 test / 323 assertion pass**, frontend lint/build và Pint pass.
 - 2026-10-02: chuyển Compose sang production-only qua `drinks.hmmh.click`, bỏ Vite dev/phpMyAdmin/host ports/source bind mounts và xóa scaffold Vue; production build tự lint frontend, full backend PHPUnit **79 test / 323 assertion pass**, 7 service healthy, API domain HTTP 200; MySQL giữ 50 món, 4 user và 8 đơn.
 - 2026-10-11: thêm quản lý tài khoản admin và tổng quan doanh thu. Full PHPUnit trong container Docker **87 test / 362 assertion pass** trên SQLite in-memory; Pint trên 15 file PHP thay đổi pass; frontend lint/production build pass. Các container đang chạy giữ nguyên, không chạy migration lên MySQL.
+- 2026-11-01: rà soát toàn bộ dự án và cập nhật tài liệu (.md); hệ thống đang chạy thực tế trên Docker build tại `https://drinks.hmmh.click` với tài khoản quản trị viên `admin1@drinks.hmmh.click` (mật khẩu `Admin@3618`); hoàn thiện `README.md` gốc chuẩn (DOC-02), bổ sung tài liệu `notifications` và cập nhật đồng bộ các tài liệu triển khai/vận hành.
 
 ## 10. Test map hiện có
 
@@ -427,7 +429,7 @@ Khoảng trống test lớn nhất:
 ### 11.4 Ưu tiên P2 — bảo trì và mở rộng
 
 - [x] **CLEAN-01 — Xóa scaffold/dev runtime không dùng**: đã xóa About/Hello/Welcome/icons/counter, Vite devtools, Docker Node dev service và phpMyAdmin khỏi stack production; frontend dùng `/api` cùng origin. Bằng chứng: `frontend/src`, `frontend/package.json`, `docker-compose.yml`; lint/build trong image site.
-- [ ] **DOC-02 — Viết README root chuẩn**: quick start, accounts demo, architecture link, troubleshooting, không chứa secret.
+- [x] **DOC-02 — Viết README root chuẩn**: giới thiệu tổng quan hệ thống, kiến trúc 7 container, tính năng chi tiết của 3 nhóm đối tượng, thông tin triển khai thực tế trên Docker build tại `https://drinks.hmmh.click` với tài khoản admin vận hành `admin1@drinks.hmmh.click` / `Admin@3618`, hướng dẫn khởi chạy nhanh và danh mục tài liệu liên kết. Bằng chứng: `README.md`.
 - [ ] **AUTH-02 — Chốt chiến lược token/session**: hiện login/logout xóa toàn bộ token của user; quyết định single-device hay multi-device và sửa tests/docs.
 - [x] **MEDIA-01 — Ảnh món upload**: Admin tải JPG/PNG/WebP tối đa 5 MB, file lưu trong `backend/storage/app/public/drinks`, thay ảnh dọn file cũ, Resource trả endpoint stream public và UI có preview. Bằng chứng: migration `image_path`, upload request/controller/routes, `AdminMenuView`, `DrinkTest`.
 - [ ] **UI-02 — Self-host hoặc fallback font**: Google Fonts là network dependency; bảo đảm UI vẫn ổn offline/Docker demo.

@@ -15,8 +15,9 @@ Schema xoay quanh 3 luồng nghiệp vụ chính:
 1. **Hồ sơ người dùng & sở thích** (`users`, `user_preferences`) — nền tảng cho việc cá nhân hoá.
 2. **Menu & đặt hàng** (`drinks`, `orders`, `order_items`) — luồng giao dịch lõi.
 3. **Phản hồi & gợi ý** (`ratings`, `recommendation_logs`) — vòng lặp feedback giúp cải thiện chất lượng gợi ý theo thời gian.
+4. **Thông báo trực tuyến** (`notifications`) — lưu trữ thông báo bền cho khách hàng và quản trị viên.
 
-Ngoài 7 bảng nghiệp vụ trên, Laravel còn tự sinh một số bảng hệ thống (framework-managed) không thuộc phạm vi tài liệu này — xem [mục 7](#7-bảng-hệ-thống-do-laravel-quản-lý).
+Ngoài 8 bảng nghiệp vụ trên, Laravel còn tự sinh một số bảng hệ thống (framework-managed) không thuộc phạm vi tài liệu này — xem [mục 7](#7-bảng-hệ-thống-do-laravel-quản-lý).
 
 ---
 
@@ -33,7 +34,8 @@ doc/database/
     ├── orders.md
     ├── order_items.md
     ├── ratings.md
-    └── recommendation_logs.md
+    ├── recommendation_logs.md
+    └── notifications.md
 ```
 
 Cách đọc tài liệu:

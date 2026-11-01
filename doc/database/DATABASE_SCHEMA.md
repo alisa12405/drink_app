@@ -11,7 +11,7 @@
 5. [order_items](#5-order_items)
 6. [ratings](#6-ratings)
 7. [recommendation_logs](#7-recommendation_logs)
-8. `notifications` — thông báo bền cho Customer/Admin, dùng morph `notifiable`, có `data` JSON và `read_at`.
+8. [notifications](#8-notifications)
 
 ---
 
@@ -278,5 +278,49 @@ Ràng buộc: UNIQUE `(user_id, order_id, drink_id)`.
   "final_ranked_ids": [12, 19, 7, 25, 3],
   "llm_explanation": "{\"12\":\"Trời nóng, trà đào cam sả mát lạnh giải khát tốt.\",\"19\":\"Phù hợp sở thích trái cây và caffeine nhẹ của bạn.\"}",
   "created_at": "2026-08-25T15:08:30Z"
+}
+```
+
+
+---
+
+## 8. `notifications`
+
+**Mục đích**: Lưu thông báo bền cho người dùng (Customer & Admin) trong database (NOTIFY-01, FR11). Admin nhận thông báo khi có đơn hàng mới; Customer nhận thông báo khi tạo đơn thành công và khi trạng thái đơn thay đổi.
+
+**Cấu trúc bảng**:
+
+| Cột | Kiểu | Null | Default | Mô tả |
+|---|---|---|---|---|
+| `id` | CHAR(36) / UUID (PK) | NO | | Khóa chính dạng UUID |
+| `type` | VARCHAR(255) | NO | | Tên class notification (VD: `App\Notifications\NewOrderNotification`) |
+| `notifiable_type` | VARCHAR(255) | NO | | Model sở hữu thông báo (`App\Models\User`) |
+| `notifiable_id` | BIGINT UNSIGNED | NO | | ID của user nhận thông báo |
+| `data` | TEXT / JSON | NO | | Payload thông báo (VD: `{ "order_id": 1, "title": "...", "message": "..." }`) |
+| `read_at` | TIMESTAMP | YES | NULL | Thời điểm đọc thông báo (NULL nếu chưa đọc) |
+| `created_at` | TIMESTAMP | YES | NULL | Thời điểm phát sinh thông báo |
+| `updated_at` | TIMESTAMP | YES | NULL | Thời điểm cập nhật trạng thái |
+
+Ràng buộc & Index:
+- PRIMARY KEY: `id` (UUID)
+- INDEX: `(notifiable_type, notifiable_id)` (morphs index để truy vấn nhanh thông báo của user)
+
+**Dữ liệu mẫu**:
+
+```json
+{
+  "id": "9d1b2f4c-7a8e-4a9b-8c1d-1a2b3c4d5e6f",
+  "type": "App\\Notifications\\NewOrderNotification",
+  "notifiable_type": "App\\Models\\User",
+  "notifiable_id": 2,
+  "data": {
+    "order_id": 105,
+    "title": "Đơn hàng mới #105",
+    "message": "Khách hàng Nguyễn Văn A vừa đặt đơn hàng với tổng tiền 88.000 đ.",
+    "status": "pending"
+  },
+  "read_at": null,
+  "created_at": "2026-10-01T08:30:00Z",
+  "updated_at": "2026-10-01T08:30:00Z"
 }
 ```

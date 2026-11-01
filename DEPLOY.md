@@ -124,6 +124,15 @@ docker compose exec app php artisan db:seed --class=DrinkSeeder --force
 
 Seeder đồng bộ theo tên món, có thể cập nhật và khôi phục món trong danh mục; không xóa món tùy chỉnh ngoài danh mục. Chỉ chạy lại khi muốn đồng bộ dữ liệu mẫu.
 
+### Tài khoản quản trị trên môi trường Docker đang chạy
+Bản triển khai hiện tại của dự án chạy trên Docker build tại `https://drinks.hmmh.click` đã được thiết lập sẵn tài khoản quản trị viên:
+- **Email**: `admin1@drinks.hmmh.click`
+- **Mật khẩu**: `Admin@3618`
+- **Vai trò**: `admin`
+- **Quyền hạn**: Quản lý toàn bộ hệ thống gồm tài khoản người dùng (`/admin/users`), thực đơn & ảnh tải lên (`/admin/menu`), trạng thái đơn hàng (`/admin/orders`), và báo cáo doanh thu (`/admin/reports`).
+
+### Tạo tài khoản quản trị mới cho bản cài đặt riêng (tùy chọn)
+
 Để tạo admin production với mật khẩu riêng:
 
 1. Mở `https://<ten-mien-cua-ban>/register` và đăng ký tài khoản quản trị bằng email, mật khẩu bạn chọn. Đăng ký mặc định tạo role `customer`.
@@ -142,7 +151,7 @@ Seeder đồng bộ theo tên món, có thể cập nhật và khôi phục món
    exit
    ```
 
-4. Đăng xuất, đăng nhập lại và mở `/admin/menu`.
+4. Đăng xuất, đăng nhập lại và mở `/admin/menu` hoặc `/admin/users`.
 
 Nếu chỉ dựng môi trường demo với database mới, có thể dùng `docker compose exec app php artisan db:seed --force` **thay cho** các bước khởi tạo trên. `DatabaseSeeder` tạo `admin@example.com` và `test@example.com`, đều có mật khẩu mẫu `password`, rồi nạp menu. Không dùng tài khoản mẫu trên bản public production; chạy lại toàn bộ seeder có thể lỗi email trùng.
 
@@ -192,6 +201,7 @@ Mở tên miền trong trình duyệt và kiểm tra:
 - `/`: menu hiển thị; `/api/drinks` trả JSON danh mục.
 - Đăng ký/đăng nhập, thêm món vào giỏ, đặt đơn và xem lịch sử.
 - Admin xem đơn mới, chuyển trạng thái và nhận thông báo.
+- Admin quản lý tài khoản tại `/admin/users`, quản lý thực đơn tại `/admin/menu`, và xem báo cáo tại `/admin/reports`.
 - Khi có API key/vector, customer cập nhật sở thích rồi bấm nhận gợi ý; thiếu dịch vụ ngoài vẫn có fallback.
 
 Kiểm tra tự động backend bằng `make test`, hoặc chạy tương đương:
